@@ -5,6 +5,7 @@ import {
   CornerUpRight,
   Footprints,
   Gauge,
+  GitFork,
   type LucideIcon,
   Network,
   Scale,
@@ -35,7 +36,8 @@ export type AlgorithmPath =
   | '/shortest-path'
   | '/fastest-path'
   | '/pareto-path'
-  | '/turn-cost';
+  | '/turn-cost'
+  | '/spanning-tree';
 
 export interface AlgorithmMeta {
   id: string;
@@ -129,6 +131,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '转弯要花时间，于是同一条边两个价钱 —— 取决于你是从哪边进来的。dist[格子] 装不下这件事，只好把朝向也塞进状态：节点数当场翻四倍。',
     tags: ['状态扩展', '代价依赖路径', '四倍搜索空间'],
+  },
+  {
+    id: 'spanning-tree',
+    path: '/spanning-tree',
+    name: '最小生成树',
+    enName: 'Kruskal / Prim / Borůvka',
+    category: '图论',
+    icon: GitFork,
+    summary:
+      '三种贪心，三种长法，最后长出同一棵树。而它和「最短路树」是两回事 —— 总长最省的那棵树，从根走到某个点可能绕得离谱。',
+    tags: ['割性质', '并查集', '不是最短路树'],
   },
   {
     id: 'maze-gen',
