@@ -9,6 +9,7 @@ import {
 import {
   algorithmLabels,
   PATH_REVEAL_PER_FRAME,
+  PULSE_SPAN,
   WALKER_PAUSE_FRAMES,
   WALKER_SPEED,
 } from '../constants';
@@ -77,6 +78,8 @@ export function PathfindingBoard({
     walker: -1,
     pause: 0,
   });
+  /** 搜索结束后继续走的脉冲时钟，让定格在波前上的高亮衰减干净 */
+  const afterglowRef = useRef(0);
 
   const [stats, setStats] = useState<SearchStats | null>(null);
   /** 上一次上报统计时的完成状态，null 表示这一轮还没上报过 */
@@ -106,7 +109,8 @@ export function PathfindingBoard({
         searchRef.current,
         width,
         height,
-        viewportRef.current
+        viewportRef.current,
+        afterglowRef.current
       );
       layerDirtyRef.current = false;
     }
@@ -167,11 +171,14 @@ export function PathfindingBoard({
     if (instant) {
       search.runToEnd();
       pathRef.current = search.path();
-      // 拖着地形实时求解时不做回溯动画，否则每动一格都要重放一遍
+      // 拖着地形实时求解时不做回溯动画，否则每动一格都要重放一遍；
+      // 脉冲同理直接跳到熄灭，不然拖一下墙就闪一圈
       anim.revealed = pathRef.current.length;
+      afterglowRef.current = PULSE_SPAN;
     } else {
       pathRef.current = [];
       anim.revealed = 0;
+      afterglowRef.current = 0;
     }
     reportedDoneRef.current = null;
     layerDirtyRef.current = true;
@@ -192,6 +199,12 @@ export function PathfindingBoard({
       const wasRunning = live.running && !search.done;
       if (wasRunning) {
         search.advance(live.speed);
+        layerDirtyRef.current = true;
+        dirtyRef.current = true;
+      } else if (search.done && afterglowRef.current < PULSE_SPAN) {
+        // 搜索停了，但脉冲时钟还得走完这最后一段，波前才会自己熄灭；
+        // 之后静态层重新冻结，光点动画照旧不花成本
+        afterglowRef.current++;
         layerDirtyRef.current = true;
         dirtyRef.current = true;
       }

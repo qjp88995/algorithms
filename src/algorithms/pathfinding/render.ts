@@ -50,6 +50,11 @@ export function cellAt(
 /**
  * 静态层：地形 + 搜索状态。只在搜索推进或地形变化时重画，
  * 搜索停下之后这一层就不动了，光点动画因此几乎不花成本。
+ *
+ * `afterglow` 是搜索结束后额外推进的脉冲时钟。脉冲平时拿"又展开了多少个
+ * 节点"当时间轴，可搜索一停这个时钟就不走了，最后一批格子会永远定格在
+ * 高亮上 —— 看着像还有一圈边界没处理完。让它继续走完 PULSE_SPAN，
+ * 波前才是烧到尽头自己熄的。
  */
 export function renderStaticLayer(
   ctx: CanvasRenderingContext2D,
@@ -57,7 +62,8 @@ export function renderStaticLayer(
   search: PathSearch | null,
   width: number,
   height: number,
-  viewport: Viewport
+  viewport: Viewport,
+  afterglow = 0
 ) {
   ctx.fillStyle = gridColors.background;
   ctx.fillRect(0, 0, width, height);
@@ -65,13 +71,14 @@ export function renderStaticLayer(
   const { cellSize, offsetX, offsetY } = viewport;
   // 展开顺序归一化后用于着色，能看出搜索的波前是怎么推进的
   const expanded = search ? Math.max(search.stats().expanded, 1) : 1;
+  const pulseAt = expanded + afterglow;
   const drawLines = cellSize >= 6;
 
   for (let index = 0; index < grid.walls.length; index++) {
     const x = offsetX + xOf(grid, index) * cellSize;
     const y = offsetY + yOf(grid, index) * cellSize;
 
-    ctx.fillStyle = cellColor(grid, search, index, expanded);
+    ctx.fillStyle = cellColor(grid, search, index, expanded, pulseAt);
     ctx.fillRect(x, y, cellSize, cellSize);
 
     if (drawLines) {
@@ -100,7 +107,8 @@ function cellColor(
   grid: GridModel,
   search: PathSearch | null,
   index: number,
-  expanded: number
+  expanded: number,
+  pulseAt: number
 ): string {
   if (isWall(grid, index)) return gridColors.wall;
 
@@ -111,7 +119,7 @@ function cellColor(
       const t = order < 0 ? 0 : order / expanded;
       let color = mix(CLOSED_FROM, CLOSED_TO, t);
       // 刚展开的格子先亮一下再落回渐变色，波前于是有了"烧过去"的观感
-      const age = order < 0 ? PULSE_SPAN : expanded - order;
+      const age = order < 0 ? PULSE_SPAN : pulseAt - order;
       if (age < PULSE_SPAN) {
         color = mix(color, PULSE, (1 - age / PULSE_SPAN) * 0.55);
       }
