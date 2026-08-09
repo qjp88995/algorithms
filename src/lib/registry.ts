@@ -6,6 +6,7 @@ import {
   Gauge,
   type LucideIcon,
   Network,
+  Scale,
   Waypoints,
 } from 'lucide-react';
 
@@ -31,7 +32,8 @@ export type AlgorithmPath =
   | '/maze-gen'
   | '/maze-runner'
   | '/shortest-path'
-  | '/fastest-path';
+  | '/fastest-path'
+  | '/pareto-path';
 
 export interface AlgorithmMeta {
   id: string;
@@ -103,6 +105,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '同一条路，早高峰和深夜不是一个价。代价随出发时刻变化之后，最短的那条路往往不是最快的那条，Dijkstra 也得先满足 FIFO 才还算数。',
     tags: ['时间依赖', 'FIFO 假设', '出发时刻'],
+  },
+  {
+    id: 'pareto-path',
+    path: '/pareto-path',
+    name: '帕累托权衡',
+    enName: 'Multi-Objective Shortest Path',
+    category: '图论',
+    icon: Scale,
+    summary:
+      '时间和过路费没有换算率，「最短」这个词当场失效。答案变成一组互不支配的路 —— 而给两个目标配权重求和这种偷懒做法，会漏掉其中一部分。',
+    tags: ['帕累托前沿', '支配剪枝', '标签设定'],
   },
   {
     id: 'maze-gen',
