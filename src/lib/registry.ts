@@ -6,6 +6,7 @@ import {
   Footprints,
   Gauge,
   GitFork,
+  Grid3x3,
   type LucideIcon,
   Network,
   Scale,
@@ -27,10 +28,12 @@ import {
  * 仍然受 TanStack Router 的类型检查保护。
  */
 
-export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索' | '聚类';
+export type AlgorithmCategory =
+  '群体智能' | '元胞自动机' | '排序' | '图论' | '搜索' | '聚类';
 
 export type AlgorithmPath =
   | '/boids'
+  | '/cellular-automata'
   | '/sorting'
   | '/pathfinding'
   | '/maze-gen'
@@ -69,6 +72,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '每只鸟只看邻居，只遵守分离、对齐、聚合三条局部规则，整体却涌现出鸟群般的集体运动。',
     tags: ['涌现行为', '局部规则', '空间网格'],
+  },
+  {
+    id: 'cellular-automata',
+    path: '/cellular-automata',
+    name: '元胞自动机',
+    enName: 'Game of Life / Elementary CA',
+    category: '元胞自动机',
+    icon: Grid3x3,
+    summary:
+      '规则一共十八个二进制位。B3/S23 能造出永远吐飞船的机器，改动一位就烧成一片灰 —— 而一个格局会不会停下来，只能跑，算不出来。',
+    tags: ['局部规则', '图灵完备', '不可判定'],
   },
   {
     id: 'sorting',
