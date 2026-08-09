@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LAVA, OIL, SAND, STEAM, STONE, WATER } from './materials';
+import { LAVA, OIL, SAND, STEAM, STONE, WATER, WOOD } from './materials';
 import { SandWorld } from './sand';
 import { findScene, scenes } from './scenes';
 import type { SandOptions } from './types';
@@ -97,6 +97,15 @@ describe('油水分层', () => {
 
     run(world, 2000);
     expect(centroidY(world, OIL)).toBeLessThan(centroidY(world, WATER));
+  });
+
+  it('槽上方那根木条会从点着的一头一路烧过去', () => {
+    const world = build('layers');
+    const before = count(world, WOOD);
+    expect(before).toBeGreaterThan(0);
+
+    run(world, 1500);
+    expect(count(world, WOOD)).toBeLessThan(before * 0.5);
   });
 });
 

@@ -202,6 +202,35 @@ describe('反应', () => {
     expect(count(world, WOOD)).toBeLessThan(12);
   });
 
+  /**
+   * 火是气体，本来每帧都在往上飘。木头一着火就整格变成火焰，火苗当帧
+   * 升空 —— 燃料还在，点火的人却跑了。所以火贴着燃料时既不飘也不老化，
+   * 否则一根木条永远只烧穿火源正上方那一小段。
+   */
+  it('火沿着一根长木条一路烧过去，不是只烧穿火源头顶那一段', () => {
+    const world = new SandWorld(120, 30, 9);
+    for (let y = 10; y < 13; y++) {
+      for (let x = 5; x < 105; x++) world.set(x, y, WOOD);
+    }
+    // 左端底下垫一撮火：气体往上飘，会被木条挡住，贴着烧
+    for (let y = 13; y < 16; y++) {
+      for (let x = 5; x < 12; x++) world.set(x, y, FIRE);
+    }
+    const before = count(world, WOOD);
+
+    run(world, 2000);
+    expect(count(world, WOOD)).toBeLessThan(before * 0.4);
+    // 最远那一端也烧到了
+    expect(world.get(100, 11)).not.toBe(WOOD);
+  });
+
+  it('烧完就该灭：四周没燃料了，火照常老化消失', () => {
+    const world = withFloor(20, 20);
+    world.set(10, 15, FIRE);
+    run(world, 200);
+    expect(count(world, FIRE)).toBe(0);
+  });
+
   it('水浇岩浆：一边凝成石头，一边变蒸汽', () => {
     const world = withFloor(10, 12);
     for (let x = 2; x < 8; x++) world.set(x, 9, LAVA);

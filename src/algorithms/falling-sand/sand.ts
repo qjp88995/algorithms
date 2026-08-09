@@ -2,11 +2,13 @@ import { seededRandom } from '@/lib/random';
 
 import {
   BUOYANCY,
+  CLINGS,
   DECAY_CHANCE,
   DECAY_TO,
   DENSITY,
   DISPERSION,
   EMPTY,
+  FLAMMABLE,
   KIND,
   KIND_GAS,
   KIND_LIQUID,
@@ -308,6 +310,18 @@ export class SandWorld {
     // 点火源就算一格都不动也得醒着，否则它旁边的木头永远等不到被点着
     if (RESTLESS[id]) this.touch(x, y);
     if (REACTIVE[id] && this.react(x, y, i, id)) return;
+
+    // 火贴着燃料时既不飘走、也不老化。
+    //
+    // 少了「不飘走」，木头一着火整格就变成气体火焰、当帧升空，燃料还在
+    // 而点火的人跑了；少了「不老化」，火焰自己那十几帧的寿命就成了燃烧
+    // 时长的上限 —— 接触面只有木条的横截面，一格火在寿命内堪堪够点燃
+    // 一格新木头，增益卡在 1 附近，一根木头总是烧到一半自己灭掉。
+    if (CLINGS[id] && this.nearFuel(x, y)) {
+      this.touch(x, y);
+      return;
+    }
+
     if (LIFE_MAX[id] > 0 && this.age(x, y, i, id)) return;
 
     switch (KIND[id]) {
@@ -409,6 +423,17 @@ export class SandWorld {
     if (span === 0) return;
     const drift = this.rand() < 0.5 ? -1 : 1;
     this.slide(cx, cy, ci, drift, 1 + ((this.rand() * span) | 0), id);
+  }
+
+  /** 四邻还有没有可烧的东西 */
+  private nearFuel(x: number, y: number) {
+    for (let k = 0; k < 4; k++) {
+      const nx = x + NEIGHBOR_X[k];
+      const ny = y + NEIGHBOR_Y[k];
+      if (!this.inside(nx, ny)) continue;
+      if (FLAMMABLE[this.mat[ny * this.cols + nx]]) return true;
+    }
+    return false;
   }
 
   /** 沿水平方向连续挪，返回是否挪动过 */

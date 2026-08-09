@@ -40,6 +40,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '当橡皮用：涂上去就是把那一片擦干净。',
   },
@@ -58,6 +59,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '不动、不烧、谁也钻不过去。拿来搭容器和斜坡。',
   },
@@ -69,13 +71,14 @@ export const MATERIALS: Material[] = [
     color: '#8a5a34',
     jitter: 0.22,
     dispersion: 0,
-    flammability: 0.02,
+    flammability: 0.05,
     burnsTo: FIRE,
     lifetime: null,
     decayTo: EMPTY,
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '和石头一样不动，只多了一条：挨着火会自己变成火。',
   },
@@ -94,6 +97,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '先看正下方，不行再看左下右下。三句话堆出一个沙堆。',
   },
@@ -105,13 +109,14 @@ export const MATERIALS: Material[] = [
     color: '#3f4552',
     jitter: 0.35,
     dispersion: 0,
-    flammability: 0.012,
+    flammability: 0.03,
     burnsTo: FIRE,
     lifetime: null,
     decayTo: EMPTY,
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '和沙同一套运动规则，只改了两个数：稍轻一点，而且能烧。',
   },
@@ -130,6 +135,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '下不去就往两边找，一帧最多铺开五格。能灭火，浇岩浆出石头。',
   },
@@ -148,6 +154,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: false,
     blurb: '比水轻，所以永远被水挤到上面 —— 而且一点就着。',
   },
@@ -166,6 +173,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0,
     fadeColor: null,
     buoyancy: 0,
+    clingsToFuel: false,
     restless: true,
     blurb: '一帧只挪一格的黏液体。点着一切可燃物，碰到水就凝成石头。',
   },
@@ -184,6 +192,7 @@ export const MATERIALS: Material[] = [
     decayChance: 0.3,
     fadeColor: '#c4331a',
     buoyancy: 0.85,
+    clingsToFuel: true,
     restless: true,
     blurb: '有寿命的气体：一边往上飘一边点燃邻居，烧完留下三成烟。',
   },
@@ -202,6 +211,7 @@ export const MATERIALS: Material[] = [
     decayChance: 1,
     fadeColor: '#20242e',
     buoyancy: 0.5,
+    clingsToFuel: false,
     restless: false,
     blurb: '比火重、比空气轻，慢慢散开然后淡掉。',
   },
@@ -220,6 +230,7 @@ export const MATERIALS: Material[] = [
     decayChance: 1,
     fadeColor: '#5d6f83',
     buoyancy: 0.7,
+    clingsToFuel: false,
     restless: false,
     blurb: '升到顶上待够时间就凝回水，于是这套系统里真的会下雨。',
   },
@@ -267,6 +278,11 @@ export const LIFE_MAX = Uint8Array.from(MATERIALS, m => m.lifetime?.[1] ?? 0);
 export const DECAY_TO = Uint8Array.from(MATERIALS, m => m.decayTo);
 export const DECAY_CHANCE = Float32Array.from(MATERIALS, m => m.decayChance);
 export const RESTLESS = Uint8Array.from(MATERIALS, m => (m.restless ? 1 : 0));
+export const CLINGS = Uint8Array.from(MATERIALS, m => (m.clingsToFuel ? 1 : 0));
+/** 能不能烧。火拿它判断四邻还有没有燃料 */
+export const FLAMMABLE = Uint8Array.from(MATERIALS, m =>
+  m.flammability > 0 ? 1 : 0
+);
 
 /**
  * 接触反应表。

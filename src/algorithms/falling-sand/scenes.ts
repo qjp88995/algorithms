@@ -91,10 +91,19 @@ const layers: Scene = {
     fillRect(world, left + 3, mid + 1, right - 3, bottom, OIL);
     fillRect(world, left + 3, top + 1, right - 3, mid, WATER);
 
-    // 槽上方架一根木条，一头点着火 —— 火沿着木头烧过来，最后掉进油里
-    const beamY = Math.max(4, top - 8);
+    // 槽上方架一根木条，一头点着火 —— 火沿着木头烧过来，最后掉进油里。
+    //
+    // 火必须垫在木条**底下**：它是气体，每帧都在往上飘。摆在木条上方
+    // 那一撮火会径直飘走，木头一格都烧不着（这个场景一开始就是这么写错的）。
+    // 垫在下面，火升到木条底面就被挡住，贴着烧到自己寿命耗尽为止。
+    const beamY = Math.max(4, top - 10);
     fillRect(world, left + 6, beamY, right - 6, beamY + 2, WOOD);
-    fillRect(world, left + 6, beamY - 2, left + 8, beamY - 1, FIRE);
+    fillRect(world, left + 6, beamY + 3, left + 17, beamY + 6, FIRE);
+
+    // 木条另一头垂一根柱子扎进槽里。火自己只会往上飘，永远走不下来 ——
+    // 但「被点燃」只要求**挨着**火，不要求火挪过去，所以火能顺着木头
+    // 一路往下蔓延，最后接上液面。等油浮上来，这根柱子就是引信。
+    fillRect(world, right - 12, beamY + 3, right - 10, top + 4, WOOD);
   },
 };
 
