@@ -175,7 +175,7 @@ export const MATERIALS: Material[] = [
     buoyancy: 0,
     clingsToFuel: false,
     restless: true,
-    blurb: '一帧只挪一格的黏液体。点着一切可燃物，碰到水就凝成石头。',
+    blurb: '一帧只挪一格的黏液体。点着一切可燃物；落进水里边沉边凝成石头。',
   },
   {
     id: FIRE,
@@ -294,7 +294,17 @@ export const FLAMMABLE = Uint8Array.from(MATERIALS, m =>
  */
 export const reactions: Reaction[] = [
   { a: WATER, b: FIRE, becomesA: STEAM, becomesB: EMPTY, chance: 0.95 },
-  { a: WATER, b: LAVA, becomesA: STEAM, becomesB: STONE, chance: 0.35 },
+  /**
+   * 淬火概率单独决定了岩浆入水的**宏观形态**，值是扫出来的：
+   *
+   *   0.35 → 一碰水面就凝住，整坨卡在水上结成壳，还把 19 格岩浆永久封在里面
+   *   0.08 → 沉过大半个水深，边沉边凝，几乎不留残液
+   *   0.008 → 几乎不凝，一路躺到池底
+   *
+   * 反应快慢和「它能沉多深」是同一件事：凝固发生在接触面上，而石头挡住水，
+   * 所以凝得越快，岩浆越早给自己造出一层隔热壳。
+   */
+  { a: WATER, b: LAVA, becomesA: STEAM, becomesB: STONE, chance: 0.08 },
   ...MATERIALS.filter(m => m.flammability > 0).flatMap(m =>
     [FIRE, LAVA].map(source => ({
       a: m.id,

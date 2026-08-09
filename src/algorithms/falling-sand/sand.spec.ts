@@ -241,6 +241,49 @@ describe('反应', () => {
     expect(count(world, LAVA)).toBeLessThan(6);
   });
 
+  /**
+   * 淬火概率定的是宏观形态，不只是「多久反应一次」：凝固发生在接触面，
+   * 而石头挡水，所以凝得越快，岩浆越早给自己糊出一层隔热壳。0.35 时整坨
+   * 卡在水面上，还把两成岩浆永久封在壳里；0.08 时才真的沉得下去。
+   */
+  it('岩浆落进深水池是边沉边凝，不是卡在水面上结壳', () => {
+    const world = new SandWorld(48, 56, 3);
+    const surface = 30;
+    const floor = 53;
+    for (let x = 0; x < 48; x++) {
+      for (let y = floor; y < 56; y++) world.set(x, y, STONE);
+    }
+    for (let y = 0; y < 56; y++) {
+      world.set(0, y, STONE);
+      world.set(47, y, STONE);
+    }
+    for (let y = surface; y < floor; y++) {
+      for (let x = 1; x < 47; x++) world.set(x, y, WATER);
+    }
+    const liquid = count(world, WATER);
+    for (let y = 8; y < 18; y++) {
+      for (let x = 18; x < 30; x++) world.set(x, y, LAVA);
+    }
+    const lava = count(world, LAVA);
+
+    run(world, 4000);
+
+    // 几乎全凝了 —— 没有一坨被自己的壳封在里面
+    expect(count(world, LAVA)).toBeLessThan(lava * 0.1);
+
+    // 而且是一路凝到水面下去的
+    let deepest = 0;
+    for (let y = 0; y < floor; y++) {
+      for (let x = 1; x < 47; x++) {
+        if (world.get(x, y) === STONE) deepest = Math.max(deepest, y);
+      }
+    }
+    expect(deepest).toBeGreaterThan(surface + 6);
+
+    // 水一格不少：被烧成蒸汽的那部分升到顶上又凝回来了
+    expect(count(world, WATER) + count(world, STEAM)).toBe(liquid);
+  });
+
   it('水能灭火', () => {
     const world = withFloor(10, 12);
     world.set(4, 9, WATER);
