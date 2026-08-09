@@ -1,4 +1,10 @@
-import { Bird, Blocks, type LucideIcon, Waypoints } from 'lucide-react';
+import {
+  Bird,
+  Blocks,
+  Footprints,
+  type LucideIcon,
+  Waypoints,
+} from 'lucide-react';
 
 /**
  * 算法注册表 —— 驱动图标导航、⌘K 命令面板和首页卡片。
@@ -15,7 +21,8 @@ import { Bird, Blocks, type LucideIcon, Waypoints } from 'lucide-react';
 
 export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
-export type AlgorithmPath = '/boids' | '/pathfinding' | '/maze-gen';
+export type AlgorithmPath =
+  '/boids' | '/pathfinding' | '/maze-gen' | '/maze-runner';
 
 export interface AlgorithmMeta {
   id: string;
@@ -65,6 +72,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '四种算法长出的都是同一种东西 —— 一棵生成树。区别全在怎么长：钻到底再回头、从边界均匀蔓延、并查集合并、还是瞎走消环。',
     tags: ['生成树', '并查集', '随机游走'],
+  },
+  {
+    id: 'maze-runner',
+    path: '/maze-runner',
+    name: '走迷宫',
+    enName: 'Maze Running',
+    category: '搜索',
+    icon: Footprints,
+    summary:
+      '第一人称：只看得见眼前一圈，也不知道出口在哪。没有启发式、没有优先队列 —— 图搜索里免费的那一跳，在这里是要走路的。',
+    tags: ['局部信息', '扶墙法', '回溯代价'],
   },
 ];
 

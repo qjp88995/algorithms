@@ -15,9 +15,14 @@
 组件放 `src/algorithms/<id>/` 或 `src/pages/`。这样
 `react-refresh/only-export-components` 也能全局开着、零告警。
 
+**共享内核放 `lib/`，而且只在第二个用户出现之后。** `lib/maze/` 里的生成器
+是被三个页面同时要走才搬过去的（迷宫生成页是主角，寻路和走迷宫拿它铺地形）。
+在那之前它就待在 `pathfinding/maze.ts` 里 —— 一份实现只有一个用户时，
+放在用它的地方比放在"公共"的地方更好找。
+
 **算法内核不碰 canvas、不碰 React。** `flock.ts` / `search.ts` 都是纯数值计算，
 canvas 绘制在 `render.ts`，React 状态在 hook 里。这样内核可以直接单元测试，
-现在两个算法一共 40 个测试全跑在内核上。
+现在 59 个测试全跑在内核上，一个都不需要渲染组件。
 
 **可变的模拟状态用 ref，不进 state。** 位置/速度是 `Float32Array`，网格是原地修改的
 `Uint8Array`，每帧都在变，克隆一份毫无意义。注意 React 19 的 lint 规则禁止在渲染期间
@@ -40,6 +45,8 @@ src/
 ├── pages/               非算法页面（首页）
 ├── components/          跨算法复用：AlgorithmPage 外壳、controls、notes 原语
 ├── lib/registry.ts      算法注册表，驱动图标导航 / ⌘K / 首页卡片
+├── lib/hotkeys.ts       全站快捷键注册中心
+├── lib/maze/            迷宫网格与四种生成器（生成本身是一页，寻路/走迷宫拿它当地形）
 └── algorithms/<id>/     一个算法一个目录，内容全部收在里面
     ├── <Id>Page.tsx     页面：把画布和面板塞进 AlgorithmPage 的插槽
     ├── use<Id>.ts       状态中枢 + rAF 循环，产出各组件的 props
