@@ -27,6 +27,11 @@ canvas 绘制在 `render.ts`，React 状态在 hook 里。这样内核可以直�
 **rAF 循环只在挂载时建立一次。** 所有会被用户随手拖动的参数通过一个 `liveRef` 传进
 循环。否则每动一下滑块就重建循环，拖尾会闪、帧率统计也会断。
 
+**快捷键走注册表，不各自挂 window 监听。** `src/lib/hotkeys.ts` 是全站唯一的 keydown
+入口，组件用 `useHotkeys` 注册绑定、卸载时自动注销。这样冲突可判定（后注册的盖前面的，
+即页面级优先于全局），`?` 速查表列的就是此刻真正生效的绑定 —— 表和实现不可能对不上。
+只认单键：⌘K 那种带修饰键的仍归命令面板，带修饰键的事件一律放行，免得吞掉 ⌘R。
+
 ## 代码组织约定
 
 ```
@@ -48,6 +53,10 @@ src/
 **新增一个算法**：建 `src/algorithms/<id>/` → 加 `src/routes/<id>.tsx`（三行）→ 在
 `src/lib/registry.ts` 的 `AlgorithmPath` 联合类型和 `algorithms` 数组里各加一条
 （含一个 lucide 图标）。分类不够用就扩 `AlgorithmCategory`。
+
+把 `playback`（`running` / `onToggle` / `onStep` / `onReset`）接到 `AlgorithmPage` 上，
+就自动拿到 Space / S / R —— 这三个动作在每个演示里语义都一样，别各自再绑一套。
+算法特有的键用 `useHotkeys` 在页面组件里注册，`group` 填算法名，速查表按它分段。
 
 **样式**：Tailwind v4，主题 token 定义在 `src/index.css` 的 `@theme` 里
 （`bg-surface`、`text-muted`、`border-line` 等）。画布里的颜色不走 Tailwind，

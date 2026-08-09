@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { AlgorithmPage } from '@/components/AlgorithmPage';
+import { useHotkeys } from '@/lib/hotkeys';
 import { findByPath } from '@/lib/registry';
 
 import { PathfindingBoard } from './components/PathfindingBoard';
@@ -47,6 +48,28 @@ export function PathfindingPage() {
     [config]
   );
 
+  useHotkeys([
+    { key: 'f', label: '直接求解', group: '寻路', run: solve },
+    {
+      key: 'c',
+      label: '四路对比',
+      group: '寻路',
+      run: () => setCompare(!compare),
+    },
+    ...comparedAlgorithms.map((algorithm, index) => ({
+      key: String(index + 1),
+      label: `切到 ${algorithmLabels[algorithm].label}`,
+      group: '寻路',
+      // 对比模式下四个一起跑，切单个算法没有意义（面板上也是禁用的）
+      run: () => {
+        if (!compare) selectAlgorithm(algorithm);
+      },
+    })),
+    { key: 'm', label: '生成迷宫', group: '寻路', run: buildMaze },
+    { key: 'k', label: '随机地形', group: '寻路', run: buildRandom },
+    { key: 'x', label: '清空地形', group: '寻路', run: clearAll },
+  ]);
+
   const shared = {
     gridRef,
     runId,
@@ -62,6 +85,12 @@ export function PathfindingPage() {
     <AlgorithmPage
       meta={meta}
       notes={<PathfindingNotes />}
+      playback={{
+        running,
+        onToggle: running ? pause : play,
+        onStep: step,
+        onReset: reset,
+      }}
       controls={
         <PathfindingControls
           config={config}

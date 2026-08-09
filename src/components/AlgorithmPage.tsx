@@ -3,7 +3,20 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { BookOpen, X } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
+import { useHotkeys } from '@/lib/hotkeys';
 import type { AlgorithmMeta } from '@/lib/registry';
+
+/**
+ * 每个算法都有的三个动作。抽到外壳这一层，是因为它们在各个演示里
+ * 语义完全一样 —— 空格永远是播放/暂停，S 永远是走一步，R 永远是重来。
+ * 新算法把这三个接上就自动获得一致的键位，不用各自记一套。
+ */
+export interface PlaybackControls {
+  running: boolean;
+  onToggle: () => void;
+  onStep: () => void;
+  onReset: () => void;
+}
 
 /**
  * 算法页面的统一外壳 —— 工作台式三栏：
@@ -20,14 +33,43 @@ export function AlgorithmPage({
   meta,
   controls,
   notes,
+  playback,
   children,
 }: {
   meta: AlgorithmMeta;
   controls?: ReactNode;
   notes?: ReactNode;
+  /** 接上就自动获得 Space / S / R */
+  playback?: PlaybackControls;
   children: ReactNode;
 }) {
   const [notesOpen, setNotesOpen] = useState(false);
+
+  useHotkeys([
+    ...(notes
+      ? [
+          {
+            key: 'n',
+            label: '原理说明',
+            group: '通用',
+            run: () => setNotesOpen(value => !value),
+          },
+        ]
+      : []),
+    ...(playback
+      ? [
+          {
+            key: ' ',
+            // 标签跟着状态走，速查表上写的就是这一下按下去会发生什么
+            label: playback.running ? '暂停' : '播放',
+            group: '播放',
+            run: playback.onToggle,
+          },
+          { key: 's', label: '单步', group: '播放', run: playback.onStep },
+          { key: 'r', label: '重置', group: '播放', run: playback.onReset },
+        ]
+      : []),
+  ]);
 
   useEffect(() => {
     if (!notesOpen) return;
@@ -48,6 +90,7 @@ export function AlgorithmPage({
             type="button"
             onClick={() => setNotesOpen(value => !value)}
             aria-expanded={notesOpen}
+            title="原理说明（N）"
             className={cn(
               'ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors duration-120',
               notesOpen

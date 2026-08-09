@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
-import { Link, useRouterState } from '@tanstack/react-router';
-import { Binary, Command } from 'lucide-react';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
+import { Binary, Command, Keyboard } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
-import { groupByCategory } from '@/lib/registry';
+import { useHotkeyHelp, useHotkeys } from '@/lib/hotkeys';
+import { algorithms, groupByCategory } from '@/lib/registry';
 
 /**
  * 左侧图标导航条。
@@ -19,6 +20,41 @@ export function NavRail({ onOpenPalette }: { onOpenPalette: () => void }) {
   const currentPath = useRouterState({
     select: state => state.location.pathname,
   });
+  const navigate = useNavigate();
+  const help = useHotkeyHelp();
+
+  /** 在注册表里循环翻页；首页不在表里，按哪个方向就从对应的那一端进去 */
+  const stepAlgorithm = (delta: number) => {
+    const index = algorithms.findIndex(item => item.path === currentPath);
+    if (index < 0) {
+      navigate({ to: algorithms[delta > 0 ? 0 : algorithms.length - 1].path });
+      return;
+    }
+    const next = (index + delta + algorithms.length) % algorithms.length;
+    navigate({ to: algorithms[next].path });
+  };
+
+  useHotkeys([
+    { key: '/', label: '搜索算法', group: '通用', run: onOpenPalette },
+    {
+      key: '[',
+      label: '上一个算法',
+      group: '通用',
+      run: () => stepAlgorithm(-1),
+    },
+    {
+      key: ']',
+      label: '下一个算法',
+      group: '通用',
+      run: () => stepAlgorithm(1),
+    },
+    {
+      key: 'h',
+      label: '回首页',
+      group: '通用',
+      run: () => navigate({ to: '/' }),
+    },
+  ]);
 
   return (
     <div className="relative w-14 shrink-0">
@@ -80,15 +116,26 @@ export function NavRail({ onOpenPalette }: { onOpenPalette: () => void }) {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          title="搜索算法（⌘K）"
-          className="m-2 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap text-muted transition-colors duration-120 hover:bg-raised hover:text-ink"
-        >
-          <Command className="size-5 shrink-0" />
-          <span className={cn(!expanded && 'opacity-0')}>搜索算法</span>
-        </button>
+        <div className="m-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={onOpenPalette}
+            title="搜索算法（⌘K 或 /）"
+            className="flex items-center gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap text-muted transition-colors duration-120 hover:bg-raised hover:text-ink"
+          >
+            <Command className="size-5 shrink-0" />
+            <span className={cn(!expanded && 'opacity-0')}>搜索算法</span>
+          </button>
+          <button
+            type="button"
+            onClick={help.show}
+            title="快捷键（?）"
+            className="flex items-center gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap text-muted transition-colors duration-120 hover:bg-raised hover:text-ink"
+          >
+            <Keyboard className="size-5 shrink-0" />
+            <span className={cn(!expanded && 'opacity-0')}>快捷键</span>
+          </button>
+        </div>
       </nav>
     </div>
   );

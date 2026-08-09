@@ -83,19 +83,23 @@ export function PathfindingControls({
     <>
       <ControlGroup title="播放">
         <div className="grid grid-cols-2 gap-1.5">
-          <ActionButton variant="primary" onClick={running ? onPause : onPlay}>
+          <ActionButton
+            variant="primary"
+            onClick={running ? onPause : onPlay}
+            title={running ? '暂停（Space）' : '播放（Space）'}
+          >
             {running ? <Pause /> : <Play />}
             {running ? '暂停' : '播放'}
           </ActionButton>
-          <ActionButton onClick={onStep}>
+          <ActionButton onClick={onStep} title="单步（S）">
             <StepForward />
             单步
           </ActionButton>
-          <ActionButton onClick={onSolve}>
+          <ActionButton onClick={onSolve} title="直接求解（F）">
             <Zap />
             直接求解
           </ActionButton>
-          <ActionButton onClick={onReset}>
+          <ActionButton onClick={onReset} title="重置搜索（R）">
             <RotateCcw />
             重置搜索
           </ActionButton>
@@ -116,7 +120,7 @@ export function PathfindingControls({
 
       <ControlGroup title="算法">
         <div className="grid grid-cols-2 gap-1.5">
-          {algorithmOptions.map(option => (
+          {algorithmOptions.map((option, index) => (
             <ActionButton
               key={option.value}
               variant={
@@ -127,6 +131,7 @@ export function PathfindingControls({
               onClick={() => onAlgorithmChange(option.value)}
               className="text-xs"
               disabled={compare}
+              title={`${option.label}（${index + 1}）`}
             >
               {option.label}
             </ActionButton>
@@ -198,15 +203,23 @@ export function PathfindingControls({
 
       <ControlGroup title="地形">
         <div className="grid grid-cols-2 gap-1.5">
-          <ActionButton onClick={onBuildMaze} className="text-xs">
+          <ActionButton
+            onClick={onBuildMaze}
+            className="text-xs"
+            title="生成迷宫（M）"
+          >
             <Grid3x3 />
             迷宫
           </ActionButton>
-          <ActionButton onClick={onBuildRandom} className="text-xs">
+          <ActionButton
+            onClick={onBuildRandom}
+            className="text-xs"
+            title="随机地形（K）"
+          >
             <Shuffle />
             随机
           </ActionButton>
-          <ActionButton onClick={onClear} className="text-xs">
+          <ActionButton onClick={onClear} className="text-xs" title="清空（X）">
             <Eraser />
             清空
           </ActionButton>

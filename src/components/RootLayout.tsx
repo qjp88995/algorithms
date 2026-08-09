@@ -3,6 +3,8 @@ import { Outlet } from '@tanstack/react-router';
 import { useCommandPalette } from '@/lib/use-command-palette';
 
 import { CommandPalette } from './CommandPalette';
+import { HotkeyHelp } from './HotkeyHelp';
+import { HotkeyProvider } from './HotkeyProvider';
 import { NavRail } from './NavRail';
 
 /**
@@ -13,12 +15,15 @@ export function RootLayout() {
   const { open, setOpen } = useCommandPalette();
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <NavRail onOpenPalette={() => setOpen(true)} />
-      <main className="min-w-0 flex-1">
-        <Outlet />
-      </main>
-      <CommandPalette open={open} onClose={() => setOpen(false)} />
-    </div>
+    <HotkeyProvider>
+      <div className="flex h-full overflow-hidden">
+        <NavRail onOpenPalette={() => setOpen(true)} />
+        <main className="min-w-0 flex-1">
+          <Outlet />
+        </main>
+        <CommandPalette open={open} onClose={() => setOpen(false)} />
+        <HotkeyHelp />
+      </div>
+    </HotkeyProvider>
   );
 }

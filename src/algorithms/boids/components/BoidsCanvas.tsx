@@ -114,15 +114,19 @@ export function BoidsCanvas({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line bg-surface px-3 py-2">
-        <ActionButton variant="primary" onClick={onToggleRunning}>
+        <ActionButton
+          variant="primary"
+          onClick={onToggleRunning}
+          title={running ? '暂停（Space）' : '继续（Space）'}
+        >
           {running ? <Pause /> : <Play />}
           {running ? '暂停' : '继续'}
         </ActionButton>
-        <ActionButton onClick={onStepOnce}>
+        <ActionButton onClick={onStepOnce} title="单帧（S）">
           <SkipForward />
           单帧
         </ActionButton>
-        <ActionButton onClick={onReset}>
+        <ActionButton onClick={onReset} title="重新撒点（R）">
           <RotateCcw />
           重新撒点
         </ActionButton>
