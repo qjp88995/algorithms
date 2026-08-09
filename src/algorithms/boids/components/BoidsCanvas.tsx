@@ -80,7 +80,7 @@ export function BoidsCanvas({
   };
 
   return (
-    <div className="flex min-h-100 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-canvas">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-canvas">
       <div ref={containerRef} className="relative min-h-0 flex-1">
         <canvas
           ref={canvasRef}

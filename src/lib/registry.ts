@@ -1,10 +1,13 @@
+import { Bird, type LucideIcon } from 'lucide-react';
+
 /**
- * 算法注册表 —— 驱动首页卡片和侧边导航。
+ * 算法注册表 —— 驱动图标导航、⌘K 命令面板和首页卡片。
  *
  * 新增一个算法时：
- *   1. 在 `src/routes/` 下加一个路由文件，如 `astar.tsx`；
- *   2. 把它的路径加进 `AlgorithmPath` 联合类型；
- *   3. 在 `algorithms` 里补一条元信息。
+ *   1. 在 `src/algorithms/<id>/` 下写页面与实现；
+ *   2. 在 `src/routes/` 下加一个只做接线的路由文件；
+ *   3. 把它的路径加进 `AlgorithmPath` 联合类型；
+ *   4. 在 `algorithms` 里补一条元信息（含一个 lucide 图标）。
  *
  * `path` 用字面量联合而不是 string，这样 `<Link to={...}>`
  * 仍然受 TanStack Router 的类型检查保护。
@@ -22,6 +25,8 @@ export interface AlgorithmMeta {
   /** 英文名，用于卡片副标题 */
   enName: string;
   category: AlgorithmCategory;
+  /** 收起态导航条上显示的图标 */
+  icon: LucideIcon;
   /** 一句话说明 */
   summary: string;
   tags: string[];
@@ -34,6 +39,7 @@ export const algorithms: AlgorithmMeta[] = [
     name: '群鸟算法',
     enName: 'Boids / Flocking',
     category: '群体智能',
+    icon: Bird,
     summary:
       '每只鸟只看邻居，只遵守分离、对齐、聚合三条局部规则，整体却涌现出鸟群般的集体运动。',
     tags: ['涌现行为', '局部规则', '空间网格'],
@@ -53,4 +59,16 @@ export function groupByCategory(): [AlgorithmCategory, AlgorithmMeta[]][] {
 
 export function findByPath(path: string): AlgorithmMeta | undefined {
   return algorithms.find(item => item.path === path);
+}
+
+/** ⌘K 面板的模糊匹配：中文名、英文名、分类、标签都参与 */
+export function searchAlgorithms(query: string): AlgorithmMeta[] {
+  const keyword = query.trim().toLowerCase();
+  if (!keyword) return algorithms;
+  return algorithms.filter(item =>
+    [item.name, item.enName, item.category, ...item.tags]
+      .join(' ')
+      .toLowerCase()
+      .includes(keyword)
+  );
 }

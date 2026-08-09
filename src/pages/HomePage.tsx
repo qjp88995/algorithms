@@ -19,8 +19,11 @@ export function HomePage() {
               to={item.path}
               className="group flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 transition-colors duration-120 hover:border-accent"
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-medium">{item.name}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-medium">
+                  <item.icon className="size-4 text-accent" />
+                  {item.name}
+                </span>
                 <ArrowRight className="size-4 text-faint transition-colors duration-120 group-hover:text-accent" />
               </div>
               <span className="font-mono text-xs text-faint">

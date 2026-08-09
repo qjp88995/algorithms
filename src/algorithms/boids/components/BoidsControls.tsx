@@ -50,7 +50,7 @@ export function BoidsControls({
   const activePreset = presets.find(item => item.id === presetId);
 
   return (
-    <div className="flex w-full shrink-0 flex-col gap-6 lg:w-64">
+    <>
       <ControlGroup title="预设">
         <div className="grid grid-cols-2 gap-1.5">
           {presets.map(preset => (
@@ -255,6 +255,6 @@ export function BoidsControls({
           ]}
         />
       </ControlGroup>
-    </div>
+    </>
   );
 }

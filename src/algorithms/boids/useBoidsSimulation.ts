@@ -1,31 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { BoidsCanvasProps } from './components/BoidsCanvas';
+import type { BoidsControlsProps } from './components/BoidsControls';
 import {
   defaultConfig,
   MAX_FRAME_SECONDS,
   PICK_RADIUS,
   presets,
   STATS_INTERVAL,
-} from '../constants';
-import { Flock } from '../flock';
-import { renderFlock } from '../render';
+} from './constants';
+import { Flock } from './flock';
+import { renderFlock } from './render';
 import type {
   BoidsConfig,
   DemoStats,
   PointerInteraction,
   Steering,
-} from '../types';
-import { BoidsCanvas } from './BoidsCanvas';
-import { BoidsControls } from './BoidsControls';
+} from './types';
 
 /**
- * 把模拟内核、渲染循环和参数面板接在一起。
+ * 把模拟内核、渲染循环和面板状态收在一个 hook 里，
+ * 分别产出画布和参数面板的 props —— 这样页面可以把两块塞进
+ * AlgorithmPage 的不同插槽，而它们仍共享同一份状态。
  *
  * 关键约束：rAF 循环只在挂载时建立一次。所有会被用户随手拖动的
  * 参数都通过 `liveRef` 传进循环，否则每动一下滑块就重建循环，
  * 拖尾会闪、帧率统计也会被打断。
  */
-export function BoidsDemo() {
+export function useBoidsSimulation(): {
+  canvasProps: BoidsCanvasProps;
+  controlsProps: BoidsControlsProps;
+} {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const flockRef = useRef<Flock | null>(null);
@@ -201,53 +206,53 @@ export function BoidsDemo() {
     setFocusIndex(best >= 0 ? best : null);
   }, []);
 
-  const applyPreset = (id: string) => {
-    const preset = presets.find(item => item.id === id);
-    if (!preset) return;
-    setPresetId(id);
-    patchConfig(preset.patch);
-  };
-
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
-      <BoidsCanvas
-        containerRef={containerRef}
-        canvasRef={canvasRef}
-        onResize={handleResize}
-        onPointerMove={handlePointerMove}
-        onPointerLeave={handlePointerLeave}
-        onPick={handlePick}
-        running={running}
-        onToggleRunning={() => setRunning(value => !value)}
-        onStepOnce={() => {
-          stepOnceRef.current = true;
-          setRunning(false);
-        }}
-        onReset={() => {
-          flockRef.current?.reset(config.count);
-          setFocusIndex(null);
-        }}
-        focusIndex={focus}
-        onClearFocus={() => setFocusIndex(null)}
-        fps={stats.fps}
-        count={config.count}
-      />
-
-      <BoidsControls
-        config={config}
-        onConfigChange={patchConfig}
-        presetId={presetId}
-        onPresetSelect={applyPreset}
-        timeScale={timeScale}
-        onTimeScaleChange={setTimeScale}
-        trails={trails}
-        onTrailsChange={setTrails}
-        colorByHeading={colorByHeading}
-        onColorByHeadingChange={setColorByHeading}
-        interaction={interaction}
-        onInteractionChange={setInteraction}
-        stats={stats}
-      />
-    </div>
+  const applyPreset = useCallback(
+    (id: string) => {
+      const preset = presets.find(item => item.id === id);
+      if (!preset) return;
+      setPresetId(id);
+      patchConfig(preset.patch);
+    },
+    [patchConfig]
   );
+
+  return {
+    canvasProps: {
+      containerRef,
+      canvasRef,
+      onResize: handleResize,
+      onPointerMove: handlePointerMove,
+      onPointerLeave: handlePointerLeave,
+      onPick: handlePick,
+      running,
+      onToggleRunning: () => setRunning(value => !value),
+      onStepOnce: () => {
+        stepOnceRef.current = true;
+        setRunning(false);
+      },
+      onReset: () => {
+        flockRef.current?.reset(config.count);
+        setFocusIndex(null);
+      },
+      focusIndex: focus,
+      onClearFocus: () => setFocusIndex(null),
+      fps: stats.fps,
+      count: config.count,
+    },
+    controlsProps: {
+      config,
+      onConfigChange: patchConfig,
+      presetId,
+      onPresetSelect: applyPreset,
+      timeScale,
+      onTimeScaleChange: setTimeScale,
+      trails,
+      onTrailsChange: setTrails,
+      colorByHeading,
+      onColorByHeadingChange: setColorByHeading,
+      interaction,
+      onInteractionChange: setInteraction,
+      stats,
+    },
+  };
 }
