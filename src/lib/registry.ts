@@ -9,6 +9,7 @@ import {
   type LucideIcon,
   Network,
   Scale,
+  Waves,
   Waypoints,
 } from 'lucide-react';
 
@@ -37,7 +38,8 @@ export type AlgorithmPath =
   | '/fastest-path'
   | '/pareto-path'
   | '/turn-cost'
-  | '/spanning-tree';
+  | '/spanning-tree'
+  | '/max-flow';
 
 export interface AlgorithmMeta {
   id: string;
@@ -142,6 +144,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '三种贪心，三种长法，最后长出同一棵树。而它和「最短路树」是两回事 —— 总长最省的那棵树，从根走到某个点可能绕得离谱。',
     tags: ['割性质', '并查集', '不是最短路树'],
+  },
+  {
+    id: 'max-flow',
+    path: '/max-flow',
+    name: '最大流最小割',
+    enName: 'Ford-Fulkerson / Edmonds-Karp / Dinic',
+    category: '图论',
+    icon: Waves,
+    summary:
+      '每条边是一根有粗细的管子，问题是从源头最多能挤过去多少。答案卡在一组边上 —— 而贪心之所以能算对，全靠一条允许「退货」的反向边。',
+    tags: ['残量网络', '反向边', '最大流最小割'],
   },
   {
     id: 'maze-gen',
