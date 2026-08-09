@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+/**
+ * 站点固定使用深色主题：算法可视化基本都是发光的点线，
+ * 深色底能让轨迹和高亮色有足够对比度。
+ */
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --color-canvas: oklch(0.17 0.012 265);
+  --color-surface: oklch(0.21 0.015 265);
+  --color-raised: oklch(0.25 0.018 265);
+  --color-line: oklch(0.32 0.02 265);
+  --color-ink: oklch(0.94 0.005 265);
+  --color-muted: oklch(0.68 0.015 265);
+  --color-faint: oklch(0.52 0.015 265);
+  --color-accent: oklch(0.76 0.15 195);
+  --color-accent-ink: oklch(0.22 0.04 195);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 细滚动条，避免侧栏出现粗重的默认滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+/* 统一 range 滑块外观 */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -5px;
+  height: 14px;
+  width: 14px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}
+
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+}
+
+input[type='range']::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--color-accent);
+}

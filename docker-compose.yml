@@ -1,0 +1,79 @@
+# ─────────────────────────────────────────────────────────────
+# 本地开发 compose。
+#
+# 纯前端站点，没有后端和数据库，因此不需要 Traefik：
+# 单个 web 服务直接把 Vite dev server 映射到宿主机。
+#
+#   http://localhost:${WEB_PORT:-8896}
+#
+# 源码 / node_modules / pnpm store 都在 bind mount 的项目目录里，
+# 没有具名卷需要维护。一次性的 `deps` 服务在 web 启动前跑完
+# `pnpm install`。
+#
+# 所有开发命令都在容器里跑，不要在宿主机上执行 pnpm：
+#   docker compose up -d                        启动开发服务器
+#   docker compose logs -f web                  看日志
+#   docker compose run --rm cli pnpm test       跑测试
+#   docker compose run --rm cli pnpm lint       跑 lint
+#   docker compose run --rm cli pnpm build      生产构建
+#   docker compose run --rm cli pnpm add xxx    加依赖
+#
+# 宿主机 88xx 段占用情况（避免端口冲突）：
+#   8888/8889 smart-property   8890/8891 stock-trading
+#   8892/8893 agent-x          8894/8895 peerlink
+#   8900/8910 scriptwright     → 本项目取 8896
+# ─────────────────────────────────────────────────────────────
+
+x-app-build: &app-build
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.dev
+    args:
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+  image: algorithms-dev:latest
+
+services:
+  # ─── 一次性依赖安装 ────────────────────────────────────────
+  deps:
+    <<: *app-build
+    command: pnpm install
+    volumes:
+      - ./:/workspace
+    networks:
+      - internal
+
+  # ─── Vite dev server ───────────────────────────────────────
+  web:
+    <<: *app-build
+    restart: unless-stopped
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+    environment:
+      RUNNING_IN_DOCKER: '1'
+      # HMR 的 WebSocket 走宿主机映射端口，必须与下面的映射一致。
+      WEB_PORT: ${WEB_PORT:-8896}
+    command: pnpm dev
+    volumes:
+      - ./:/workspace
+    networks:
+      - internal
+    # 宿主端口映射放在 docker-compose.override.yml。
+
+  # ─── 一次性命令入口 ────────────────────────────────────────
+  # 用 profile 挡住，`docker compose up` 不会启动它，
+  # 只在 `docker compose run --rm cli <命令>` 时拉起。
+  cli:
+    <<: *app-build
+    profiles: ['cli']
+    command: sh
+    volumes:
+      - ./:/workspace
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: algorithms_internal
+    driver: bridge

@@ -1,0 +1,7 @@
+# git 在宿主机上跑，钩子自然也在宿主机上跑（lint-staged 需要读取
+# git 暂存区，容器里没有 git）。它只调用 node_modules 里已装好的
+# 二进制，不会安装任何依赖。
+set -eu
+
+pnpm lint-staged
+pnpm typecheck
