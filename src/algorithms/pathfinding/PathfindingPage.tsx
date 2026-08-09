@@ -4,19 +4,10 @@ import { findByPath } from '@/lib/registry';
 import { PathfindingBoard } from './components/PathfindingBoard';
 import { PathfindingControls } from './components/PathfindingControls';
 import { PathfindingNotes } from './components/PathfindingNotes';
-import { algorithmLabels } from './constants';
-import type { SearchAlgorithm } from './types';
+import { algorithmLabels, comparedAlgorithms } from './constants';
 import { usePathfinding } from './usePathfinding';
 
 const meta = findByPath('/pathfinding')!;
-
-/** 对比模式下并排跑的四个算法 */
-const comparedAlgorithms: SearchAlgorithm[] = [
-  'astar',
-  'dijkstra',
-  'bfs',
-  'greedy',
-];
 
 export function PathfindingPage() {
   const {
@@ -29,6 +20,7 @@ export function PathfindingPage() {
     brush,
     compare,
     patchConfig,
+    selectAlgorithm,
     setSpeed,
     setBrush,
     setCompare,
@@ -61,6 +53,7 @@ export function PathfindingPage() {
         <PathfindingControls
           config={config}
           onConfigChange={patchConfig}
+          onAlgorithmChange={selectAlgorithm}
           running={running}
           onPlay={play}
           onPause={pause}

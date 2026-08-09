@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { DragKind } from './components/PathfindingBoard';
 import {
+  comparedAlgorithms,
   DEFAULT_COLS,
   DEFAULT_ROWS,
   DEFAULT_SPEED,
@@ -9,7 +10,7 @@ import {
 } from './constants';
 import { clearTerrain, createGrid, setSwamp, setWall } from './grid';
 import { generateMaze, scatterObstacles } from './maze';
-import type { Brush, SearchConfig } from './types';
+import type { Brush, SearchAlgorithm, SearchConfig } from './types';
 
 /**
  * 寻路演示的状态中枢。
@@ -26,20 +27,49 @@ export function usePathfinding() {
   const gridRef = useRef(createGrid(DEFAULT_COLS, DEFAULT_ROWS));
   const [config, setConfig] = useState<SearchConfig>(defaultConfig);
   const [runId, setRunId] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [instant, setInstant] = useState(true);
+  // 进页面直接播一遍：这个页面的重点就是看搜索怎么扩张，
+  // 一上来给个静态结果等于把最有意思的部分藏起来了
+  const [running, setRunning] = useState(true);
+  const [instant, setInstant] = useState(false);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [brush, setBrush] = useState<Brush>('wall');
   const [compare, setCompare] = useState(false);
 
-  const restart = useCallback(() => setRunId(id => id + 1), []);
+  /** 对比模式下有四块画布，要等它们都跑完才算这一轮结束 */
+  const finishedRef = useRef(0);
+
+  const restart = useCallback(() => {
+    finishedRef.current = 0;
+    setRunId(id => id + 1);
+  }, []);
 
   const patchConfig = useCallback((patch: Partial<SearchConfig>) => {
     setConfig(prev => ({ ...prev, ...patch }));
-    // 参数变了就回到即时求解，直接看新参数的结果
+    // 调滑块时要的是即时反馈，直接给结果
     setRunning(false);
     setInstant(true);
   }, []);
+
+  /** 换算法则重新播一遍 —— 不同算法怎么扩张正是这页要看的东西 */
+  const selectAlgorithm = useCallback(
+    (algorithm: SearchAlgorithm) => {
+      setConfig(prev => ({ ...prev, algorithm }));
+      setInstant(false);
+      setRunning(true);
+      restart();
+    },
+    [restart]
+  );
+
+  const toggleCompare = useCallback(
+    (value: boolean) => {
+      setCompare(value);
+      setInstant(false);
+      setRunning(true);
+      restart();
+    },
+    [restart]
+  );
 
   /** 画笔落到某一格：画墙/沼泽、擦除，或拖动起终点 */
   const paint = useCallback(
@@ -102,8 +132,8 @@ export function usePathfinding() {
   const rebuildTerrain = useCallback(
     (build: () => void) => {
       build();
-      setRunning(false);
-      setInstant(true);
+      setInstant(false);
+      setRunning(true);
       restart();
     },
     [restart]
@@ -124,7 +154,11 @@ export function usePathfinding() {
     [rebuildTerrain]
   );
 
-  const handleFinished = useCallback(() => setRunning(false), []);
+  const handleFinished = useCallback(() => {
+    finishedRef.current += 1;
+    const boards = compare ? comparedAlgorithms.length : 1;
+    if (finishedRef.current >= boards) setRunning(false);
+  }, [compare]);
 
   return {
     gridRef,
@@ -136,9 +170,10 @@ export function usePathfinding() {
     brush,
     compare,
     patchConfig,
+    selectAlgorithm,
     setSpeed,
     setBrush,
-    setCompare,
+    setCompare: toggleCompare,
     paint,
     play,
     pause,

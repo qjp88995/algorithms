@@ -23,6 +23,8 @@ import type { Brush, Heuristic, SearchAlgorithm, SearchConfig } from '../types';
 export interface PathfindingControlsProps {
   config: SearchConfig;
   onConfigChange: (patch: Partial<SearchConfig>) => void;
+  /** 换算法会重新播一遍动画，和调滑块的即时求解区分开 */
+  onAlgorithmChange: (algorithm: SearchAlgorithm) => void;
   running: boolean;
   onPlay: () => void;
   onPause: () => void;
@@ -53,6 +55,7 @@ const heuristicOptions = (Object.keys(heuristicLabels) as Heuristic[]).map(
 export function PathfindingControls({
   config,
   onConfigChange,
+  onAlgorithmChange,
   running,
   onPlay,
   onPause,
@@ -110,7 +113,7 @@ export function PathfindingControls({
                   ? 'primary'
                   : 'ghost'
               }
-              onClick={() => onConfigChange({ algorithm: option.value })}
+              onClick={() => onAlgorithmChange(option.value)}
               className="text-xs"
               disabled={compare}
             >

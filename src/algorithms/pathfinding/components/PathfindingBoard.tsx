@@ -6,9 +6,21 @@ import {
   useState,
 } from 'react';
 
-import { algorithmLabels } from '../constants';
+import {
+  algorithmLabels,
+  PATH_REVEAL_PER_FRAME,
+  WALKER_PAUSE_FRAMES,
+  WALKER_SPEED,
+} from '../constants';
 import { isWall } from '../grid';
-import { cellAt, computeViewport, renderGrid, type Viewport } from '../render';
+import {
+  cellAt,
+  computeViewport,
+  type PathAnimation,
+  renderOverlay,
+  renderStaticLayer,
+  type Viewport,
+} from '../render';
 import { PathSearch } from '../search';
 import type { GridModel, SearchConfig, SearchStats } from '../types';
 
@@ -57,6 +69,14 @@ export function PathfindingBoard({
   const sizeRef = useRef({ width: 0, height: 0 });
   const dragRef = useRef<DragKind | null>(null);
   const dirtyRef = useRef(true);
+  /** 地形和搜索状态画在离屏画布上，光点动画时不用重画一千多个格子 */
+  const layerRef = useRef<HTMLCanvasElement | null>(null);
+  const layerDirtyRef = useRef(true);
+  const animRef = useRef<PathAnimation & { pause: number }>({
+    revealed: 0,
+    walker: -1,
+    pause: 0,
+  });
 
   const [stats, setStats] = useState<SearchStats | null>(null);
   /** 上一次上报统计时的完成状态，null 表示这一轮还没上报过 */
@@ -71,17 +91,32 @@ export function PathfindingBoard({
   const draw = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
+    const layer = layerRef.current;
+    const layerCtx = layer?.getContext('2d');
+    if (!canvas || !ctx || !layer || !layerCtx) return;
+
     const grid = gridRef.current;
     const { width, height } = sizeRef.current;
     if (width === 0 || height === 0) return;
-    renderGrid(
+
+    if (layerDirtyRef.current) {
+      renderStaticLayer(
+        layerCtx,
+        grid,
+        searchRef.current,
+        width,
+        height,
+        viewportRef.current
+      );
+      layerDirtyRef.current = false;
+    }
+
+    ctx.drawImage(layer, 0, 0, width, height);
+    renderOverlay(
       ctx,
       grid,
-      searchRef.current,
       pathRef.current,
-      width,
-      height,
+      animRef.current,
       viewportRef.current
     );
   };
@@ -101,8 +136,16 @@ export function PathfindingBoard({
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       canvas.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const layer = layerRef.current ?? document.createElement('canvas');
+      layer.width = canvas.width;
+      layer.height = canvas.height;
+      layer.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      layerRef.current = layer;
+
       sizeRef.current = { width, height };
       viewportRef.current = computeViewport(gridRef.current, width, height);
+      layerDirtyRef.current = true;
       dirtyRef.current = true;
     };
 
@@ -118,13 +161,20 @@ export function PathfindingBoard({
   useEffect(() => {
     const search = new PathSearch(gridRef.current, config);
     searchRef.current = search;
+    const anim = animRef.current;
+    anim.walker = -1;
+    anim.pause = 0;
     if (instant) {
       search.runToEnd();
       pathRef.current = search.path();
+      // 拖着地形实时求解时不做回溯动画，否则每动一格都要重放一遍
+      anim.revealed = pathRef.current.length;
     } else {
       pathRef.current = [];
+      anim.revealed = 0;
     }
     reportedDoneRef.current = null;
+    layerDirtyRef.current = true;
     dirtyRef.current = true;
   }, [gridRef, config, runId, instant]);
 
@@ -142,6 +192,7 @@ export function PathfindingBoard({
       const wasRunning = live.running && !search.done;
       if (wasRunning) {
         search.advance(live.speed);
+        layerDirtyRef.current = true;
         dirtyRef.current = true;
       }
 
@@ -156,6 +207,32 @@ export function PathfindingBoard({
         reportedDoneRef.current = search.done;
         setStats(search.stats());
         lastStatsAt = now;
+      }
+
+      // 找到之后：先从终点回溯把路径揭示出来，再让光点循环走一趟
+      const anim = animRef.current;
+      const path = pathRef.current;
+      if (search.done && path.length > 1) {
+        if (anim.revealed < path.length) {
+          anim.revealed = Math.min(
+            path.length,
+            anim.revealed + PATH_REVEAL_PER_FRAME
+          );
+          dirtyRef.current = true;
+        } else if (anim.pause > 0) {
+          anim.pause--;
+          if (anim.pause === 0) {
+            anim.walker = 0;
+            dirtyRef.current = true;
+          }
+        } else {
+          anim.walker = anim.walker < 0 ? 0 : anim.walker + WALKER_SPEED;
+          if (anim.walker >= path.length - 1) {
+            anim.walker = path.length - 1;
+            anim.pause = WALKER_PAUSE_FRAMES;
+          }
+          dirtyRef.current = true;
+        }
       }
 
       if (dirtyRef.current) {
