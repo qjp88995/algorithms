@@ -10,7 +10,7 @@ import type { SandConfig } from './types';
  */
 export const defaultConfig: SandConfig = {
   cellSize: 3,
-  stepsPerFrame: 1,
+  speed: 60,
   brushSize: 4,
   material: SAND,
   showChunks: false,
@@ -28,8 +28,11 @@ export const MAX_CELL_SIZE = 8;
 export const MIN_BRUSH = 0;
 export const MAX_BRUSH = 24;
 
-export const MIN_STEPS = 1;
-export const MAX_STEPS = 4;
+/** 每秒步数。60 = 满速（每帧一步），调到个位数就是慢动作 */
+export const MIN_SPEED = 2;
+export const MAX_SPEED = 240;
+/** 掉帧或标签页切回来时最多补几步，免得一下冲过去一大段 */
+export const MAX_STEPS_PER_FRAME = 4;
 
 export const MIN_SPREAD = 1;
 export const MAX_SPREAD = 8;

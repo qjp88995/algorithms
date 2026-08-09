@@ -90,8 +90,13 @@ export interface SandStats {
 export interface SandConfig {
   /** 一个格子画多少屏幕像素 */
   cellSize: number;
-  /** 每帧推进几步模拟 */
-  stepsPerFrame: number;
+  /**
+   * 每秒推进多少步模拟，和帧率解耦。
+   *
+   * 有它才看得见「扰动一圈圈传出去」：满速下，挖开一处水面，两百格外
+   * 十几帧就跟着降 —— 也就是六分之一秒。调到个位数，同一件事要走好几秒。
+   */
+  speed: number;
   brushSize: number;
   material: number;
   showChunks: boolean;

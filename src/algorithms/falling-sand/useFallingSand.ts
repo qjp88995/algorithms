@@ -5,6 +5,7 @@ import {
   INITIAL_SCENE,
   MAX_BRUSH,
   MAX_CELLS,
+  MAX_STEPS_PER_FRAME,
   MIN_BRUSH,
 } from './constants';
 import { SandRenderer } from './render';
@@ -130,6 +131,9 @@ export function useFallingSand() {
 
     let frame = 0;
     let last = performance.now();
+    // 「这一帧欠了几步」的累积。模拟按步推进而不是按时间积分，
+    // 靠它把步数和帧率解耦 —— 速度调到 2 步/秒也不会因帧长抖动而忽快忽慢
+    let carry = 0;
     let statTimer = 0;
     let frames = 0;
     let elapsedSum = 0;
@@ -157,11 +161,13 @@ export function useFallingSand() {
       }
 
       if (isRunning) {
-        for (let k = 0; k < live.stepsPerFrame; k++) {
-          world.step(optionsRef.current);
-        }
+        carry += elapsed * live.speed;
+        const steps = Math.min(MAX_STEPS_PER_FRAME, Math.floor(carry));
+        carry -= steps;
+        for (let k = 0; k < steps; k++) world.step(optionsRef.current);
       } else if (stepOnceRef.current) {
         world.step(optionsRef.current);
+        carry = 0;
       }
       stepOnceRef.current = false;
 

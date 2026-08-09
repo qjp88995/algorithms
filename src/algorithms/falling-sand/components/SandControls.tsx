@@ -10,12 +10,12 @@ import { cn } from '@/lib/cn';
 import {
   MAX_BRUSH,
   MAX_CELL_SIZE,
+  MAX_SPEED,
   MAX_SPREAD,
-  MAX_STEPS,
   MIN_BRUSH,
   MIN_CELL_SIZE,
+  MIN_SPEED,
   MIN_SPREAD,
-  MIN_STEPS,
 } from '../constants';
 import { EMPTY, MATERIALS, PALETTE } from '../materials';
 import { scenes } from '../scenes';
@@ -129,12 +129,13 @@ export function SandControls({
           onChange={cellSize => onPatch({ cellSize })}
         />
         <SliderControl
-          label="每帧步数"
-          value={config.stepsPerFrame}
-          min={MIN_STEPS}
-          max={MAX_STEPS}
-          hint="一帧跑几遍模拟。调大 = 流体更快，帧率更低"
-          onChange={stepsPerFrame => onPatch({ stepsPerFrame })}
+          label="模拟速度"
+          value={config.speed}
+          min={MIN_SPEED}
+          max={MAX_SPEED}
+          unit=" 步/秒"
+          hint="60 是满速。调到个位数看慢动作 —— 挖开水面时，扰动怎么从缺口一圈圈传到远端，只有慢放才看得清"
+          onChange={speed => onPatch({ speed })}
         />
         <SliderControl
           label="液体铺开距离"
