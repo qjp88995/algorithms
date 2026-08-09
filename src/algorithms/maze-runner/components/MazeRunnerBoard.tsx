@@ -5,6 +5,7 @@ import { createMazeGrid, indexOf, type MazeGrid } from '@/lib/maze/grid';
 import { seededRandom } from '@/lib/random';
 
 import { algorithmLabels } from '../constants';
+import { pickExit } from '../exit';
 import { computeViewport, renderRun, type Viewport } from '../render';
 import {
   createRunner,
@@ -117,11 +118,13 @@ export function MazeRunnerBoard({
     // 迷宫只由种子和尺寸决定，四块画布因此拿到一模一样的一张
     createGenerator('backtracker', grid, seededRandom(seed)).runToEnd();
 
+    // 出口只由种子决定，不看算法 —— 四块画布必须找同一个出口
+    const start = indexOf(grid, 1, 1);
     const runner = createRunner(
       algorithm,
       grid,
-      indexOf(grid, 1, 1),
-      indexOf(grid, cols - 2, rows - 2),
+      start,
+      pickExit(grid, start, seededRandom(seed * 7919 + 13)),
       seededRandom(seed * 31 + 7)
     );
     if (instant) runner.runToEnd();

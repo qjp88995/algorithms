@@ -4,6 +4,7 @@ import { createGenerator } from '@/lib/maze/generators';
 import { createMazeGrid, indexOf } from '@/lib/maze/grid';
 import { seededRandom } from '@/lib/random';
 
+import { FAR_RATIO, floodFrom, pickExit } from './exit';
 import { createRunner, type RunnerAlgorithm } from './runner';
 
 const algorithms: RunnerAlgorithm[] = [
@@ -16,10 +17,11 @@ const algorithms: RunnerAlgorithm[] = [
 function buildMaze(seed: number, cols = 21, rows = 13) {
   const grid = createMazeGrid(cols, rows);
   createGenerator('backtracker', grid, seededRandom(seed)).runToEnd();
+  const start = indexOf(grid, 1, 1);
   return {
     grid,
-    start: indexOf(grid, 1, 1),
-    goal: indexOf(grid, cols - 2, rows - 2),
+    start,
+    goal: pickExit(grid, start, seededRandom(seed * 7919 + 13)),
   };
 }
 
@@ -35,6 +37,49 @@ function run(algorithm: RunnerAlgorithm, seed: number, cols = 21, rows = 13) {
   runner.runToEnd();
   return runner;
 }
+
+describe('出口选点', () => {
+  it('出口落在可通行格上，而且不是起点', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const { grid, start, goal } = buildMaze(seed);
+      expect(grid.walls[goal], `seed ${seed}`).toBe(0);
+      expect(goal, `seed ${seed}`).not.toBe(start);
+    }
+  });
+
+  // 纯随机会有相当比例落在起点附近，一两步就走到，四种走法的差距就没了
+  it('出口总在离起点最远的那一档里', () => {
+    for (let seed = 1; seed <= 5; seed++) {
+      const { grid, start, goal } = buildMaze(seed);
+      const distance = floodFrom(grid, start);
+      let farthest = 0;
+      for (let i = 0; i < distance.length; i++) {
+        if (distance[i] > farthest) farthest = distance[i];
+      }
+      expect(distance[goal], `seed ${seed}`).toBeGreaterThanOrEqual(
+        farthest * FAR_RATIO
+      );
+    }
+  });
+
+  it('同一张迷宫换个随机源就换个出口', () => {
+    const grid = createMazeGrid(31, 21);
+    createGenerator('backtracker', grid, seededRandom(3)).runToEnd();
+    const start = indexOf(grid, 1, 1);
+
+    const picks = new Set<number>();
+    for (let i = 1; i <= 12; i++) {
+      picks.add(pickExit(grid, start, seededRandom(i)));
+    }
+    expect(picks.size).toBeGreaterThan(1);
+  });
+
+  it('同一个种子给同一个出口 —— 四块画布才找的是同一个', () => {
+    for (let seed = 1; seed <= 3; seed++) {
+      expect(buildMaze(seed).goal).toBe(buildMaze(seed).goal);
+    }
+  });
+});
 
 describe('走迷宫', () => {
   it('四种走法都能走出完美迷宫', () => {

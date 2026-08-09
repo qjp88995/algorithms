@@ -145,7 +145,8 @@ export function MazeRunnerControls({
           换张迷宫 · {seed}
         </ActionButton>
         <p className="text-xs leading-relaxed text-faint">
-          起点在左上，出口在右下 —— 但走的人并不知道出口在哪。
+          起点在左上，出口随机落在离它最远的那一档位置里 ——
+          但走的人并不知道它在哪。
         </p>
       </ControlGroup>
     </>
