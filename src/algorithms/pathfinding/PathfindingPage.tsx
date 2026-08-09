@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { AlgorithmPage } from '@/components/AlgorithmPage';
 import { findByPath } from '@/lib/registry';
 
@@ -34,6 +36,14 @@ export function PathfindingPage() {
     clearAll,
     handleFinished,
   } = usePathfinding();
+
+  // 引用必须稳定：画布是靠 config 换了引用才知道"该重建搜索了"
+  // （改参数的滑块不递增 runId，只换 config）。每次渲染都新造一遍的话，
+  // 最后一块板跑完触发的 running=false 会连带清掉全部四份搜索结果。
+  const compareConfigs = useMemo(
+    () => comparedAlgorithms.map(algorithm => ({ ...config, algorithm })),
+    [config]
+  );
 
   const shared = {
     gridRef,
@@ -74,12 +84,12 @@ export function PathfindingPage() {
       {compare ? (
         // 四块画布共享同一张地图：在任意一块上画墙，四个算法一起重算
         <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-4 gap-3 lg:grid-cols-2 lg:grid-rows-2">
-          {comparedAlgorithms.map(algorithm => (
+          {compareConfigs.map(boardConfig => (
             <PathfindingBoard
-              key={algorithm}
+              key={boardConfig.algorithm}
               {...shared}
-              config={{ ...config, algorithm }}
-              title={algorithmLabels[algorithm].label}
+              config={boardConfig}
+              title={algorithmLabels[boardConfig.algorithm].label}
             />
           ))}
         </div>
