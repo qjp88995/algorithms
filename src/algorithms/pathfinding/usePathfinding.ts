@@ -34,6 +34,7 @@ export function usePathfinding() {
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [brush, setBrush] = useState<Brush>('wall');
   const [compare, setCompare] = useState(false);
+  const [stepId, setStepId] = useState(0);
 
   /** 对比模式下有四块画布，要等它们都跑完才算这一轮结束 */
   const finishedRef = useRef(0);
@@ -117,6 +118,17 @@ export function usePathfinding() {
 
   const pause = useCallback(() => setRunning(false), []);
 
+  /**
+   * 单步：展开一个节点就停。配合边界的亮度梯度，这是唯一能看清
+   * "队首那一格被挑走、邻居入队、顺序重排"的方式。
+   * 上一轮若是直接求解出来的，搜索已经到底，先退回起点才有步可走。
+   */
+  const step = useCallback(() => {
+    setRunning(false);
+    setInstant(false);
+    setStepId(id => id + 1);
+  }, []);
+
   const reset = useCallback(() => {
     setRunning(false);
     setInstant(false);
@@ -169,6 +181,7 @@ export function usePathfinding() {
     speed,
     brush,
     compare,
+    stepId,
     patchConfig,
     selectAlgorithm,
     setSpeed,
@@ -177,6 +190,7 @@ export function usePathfinding() {
     paint,
     play,
     pause,
+    step,
     reset,
     solve,
     buildMaze,

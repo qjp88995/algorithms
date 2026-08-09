@@ -72,13 +72,14 @@ export function renderStaticLayer(
   // 展开顺序归一化后用于着色，能看出搜索的波前是怎么推进的
   const expanded = search ? Math.max(search.stats().expanded, 1) : 1;
   const pulseAt = expanded + afterglow;
+  const frontier = frontierRange(search);
   const drawLines = cellSize >= 6;
 
   for (let index = 0; index < grid.walls.length; index++) {
     const x = offsetX + xOf(grid, index) * cellSize;
     const y = offsetY + yOf(grid, index) * cellSize;
 
-    ctx.fillStyle = cellColor(grid, search, index, expanded, pulseAt);
+    ctx.fillStyle = cellColor(grid, search, index, expanded, pulseAt, frontier);
     ctx.fillRect(x, y, cellSize, cellSize);
 
     if (drawLines) {
@@ -89,18 +90,40 @@ export function renderStaticLayer(
   }
 }
 
-/** 覆盖层：路径与行走光点，每帧都在变 */
+/** 覆盖层：游标、路径与行走光点，每帧都在变 */
 export function renderOverlay(
   ctx: CanvasRenderingContext2D,
   grid: GridModel,
   path: number[],
   anim: PathAnimation,
-  viewport: Viewport
+  viewport: Viewport,
+  cursor = -1
 ) {
+  drawCursor(ctx, grid, cursor, viewport);
   drawPath(ctx, grid, path, anim.revealed, viewport);
   drawWalker(ctx, grid, path, anim, viewport);
   drawEndpoint(ctx, grid, grid.start, gridColors.start, viewport);
   drawEndpoint(ctx, grid, grid.goal, gridColors.goal, viewport);
+}
+
+/**
+ * 边界上排序键的取值范围。着色必须归一化到这个区间 —— 键的绝对值
+ * 说明不了什么（BFS 的键是入队序号，能涨到几千），有意义的是
+ * "在当前这一圈里排第几"。
+ */
+function frontierRange(search: PathSearch | null) {
+  let min = Infinity;
+  let max = -Infinity;
+  if (search) {
+    const { state, key } = search;
+    for (let i = 0; i < state.length; i++) {
+      if (state[i] !== NODE_OPEN) continue;
+      if (key[i] < min) min = key[i];
+      if (key[i] > max) max = key[i];
+    }
+  }
+  if (min === Infinity) return { min: 0, span: 1 };
+  return { min, span: Math.max(max - min, 1e-6) };
 }
 
 function cellColor(
@@ -108,7 +131,8 @@ function cellColor(
   search: PathSearch | null,
   index: number,
   expanded: number,
-  pulseAt: number
+  pulseAt: number,
+  frontier: { min: number; span: number }
 ): string {
   if (isWall(grid, index)) return gridColors.wall;
 
@@ -125,11 +149,40 @@ function cellColor(
       }
       return css(color);
     }
-    if (state === NODE_OPEN) return gridColors.open;
+    if (state === NODE_OPEN) {
+      // 开方是为了让队首那一小撮真的跳出来：键往往挤在一起，
+      // 线性映射的结果是整圈亮度差不多，等于没画
+      const t = Math.sqrt((search.key[index] - frontier.min) / frontier.span);
+      return css(mix(OPEN_NEXT, OPEN_LATE, t));
+    }
   }
 
   if (isSwamp(grid, index)) return gridColors.swamp;
   return gridColors.cell;
+}
+
+/**
+ * 搜索的游标：刚被弹出队列、正在展开的那一格。描边而不填色，
+ * 免得盖掉它自己的状态色 —— 要看的正是"最亮的边界格变成了它"。
+ */
+function drawCursor(
+  ctx: CanvasRenderingContext2D,
+  grid: GridModel,
+  index: number,
+  { cellSize, offsetX, offsetY }: Viewport
+) {
+  if (index < 0) return;
+  const width = Math.max(1.5, cellSize * 0.16);
+  const x = offsetX + xOf(grid, index) * cellSize;
+  const y = offsetY + yOf(grid, index) * cellSize;
+  ctx.strokeStyle = gridColors.cursor;
+  ctx.lineWidth = width;
+  ctx.strokeRect(
+    x + width / 2,
+    y + width / 2,
+    cellSize - width,
+    cellSize - width
+  );
 }
 
 /**
@@ -224,6 +277,8 @@ function hexToRgb(hex: string): Rgb {
 
 const CLOSED_FROM = hexToRgb(gridColors.closedFrom);
 const CLOSED_TO = hexToRgb(gridColors.closedTo);
+const OPEN_NEXT = hexToRgb(gridColors.openNext);
+const OPEN_LATE = hexToRgb(gridColors.openLate);
 const PULSE = hexToRgb(gridColors.pulse);
 
 function mix(from: Rgb, to: Rgb, t: number): Rgb {

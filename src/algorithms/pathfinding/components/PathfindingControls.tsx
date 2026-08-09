@@ -5,6 +5,7 @@ import {
   Play,
   RotateCcw,
   Shuffle,
+  StepForward,
   Trees,
   Zap,
 } from 'lucide-react';
@@ -28,6 +29,8 @@ export interface PathfindingControlsProps {
   running: boolean;
   onPlay: () => void;
   onPause: () => void;
+  /** 展开一个节点就停 */
+  onStep: () => void;
   onReset: () => void;
   onSolve: () => void;
   speed: number;
@@ -59,6 +62,7 @@ export function PathfindingControls({
   running,
   onPlay,
   onPause,
+  onStep,
   onReset,
   onSolve,
   speed,
@@ -83,6 +87,10 @@ export function PathfindingControls({
             {running ? <Pause /> : <Play />}
             {running ? '暂停' : '播放'}
           </ActionButton>
+          <ActionButton onClick={onStep}>
+            <StepForward />
+            单步
+          </ActionButton>
           <ActionButton onClick={onSolve}>
             <Zap />
             直接求解
@@ -101,6 +109,9 @@ export function PathfindingControls({
           hint="每帧展开多少个节点"
           onChange={onSpeedChange}
         />
+        <p className="text-xs leading-relaxed text-faint">
+          单步一次展开一个节点：被挑走的总是边界上最亮的那一格。
+        </p>
       </ControlGroup>
 
       <ControlGroup title="算法">

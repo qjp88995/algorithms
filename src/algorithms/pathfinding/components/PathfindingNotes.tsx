@@ -17,11 +17,19 @@ export function PathfindingNotes() {
         <NoteLegend
           items={[
             {
+              color: `linear-gradient(90deg, ${gridColors.openNext}, ${gridColors.openLate})`,
+              label: '边界（越亮越先被展开）',
+            },
+            { color: gridColors.cursor, label: '正在展开的那一格' },
+            { color: gridColors.pulse, label: '刚展开的一瞬' },
+            {
               color: `linear-gradient(90deg, ${gridColors.closedFrom}, ${gridColors.closedTo})`,
               label: '已展开（越晚越紫）',
             },
-            { color: gridColors.open, label: '边界' },
             { color: gridColors.path, label: '最终路径' },
+            { color: gridColors.walker, label: '沿路径走的光点' },
+            { color: gridColors.start, label: '起点' },
+            { color: gridColors.goal, label: '终点' },
             { color: gridColors.wall, label: '墙' },
             { color: gridColors.swamp, label: '沼泽' },
           ]}
@@ -29,6 +37,31 @@ export function PathfindingNotes() {
         <p>
           已展开的格子按展开顺序渐变，所以颜色的推进方向就是搜索波前的推进方向。
         </p>
+      </NoteSection>
+
+      <NoteSection title="边界的亮度就是优先队列">
+        <p>
+          边界那一圈不是同一个颜色：每一格的亮度对应它在优先队列里的
+          <span className="text-ink">排序键</span>，最亮的那格下一个就被弹出。
+          点「单步」能一格一格看清这件事 ——
+          白框跳到最亮的边界格上，它变成已展开，邻居入队，整圈亮度随即重排。
+        </p>
+        <p>于是四个算法的差别在同一张图上直接可读，不用等它们跑完再比形状：</p>
+        <NoteList>
+          <NoteItem term="Dijkstra">
+            整圈亮度几乎均匀，像等高线 —— 它对方向没有任何偏好。
+          </NoteItem>
+          <NoteItem term="贪心">
+            朝终点那一侧亮出一条脊，后方的边界几乎全黑，永远不会被回头考虑。
+          </NoteItem>
+          <NoteItem term="A*">
+            亮的一侧同样指向终点，但被 <NoteCode>g</NoteCode>{' '}
+            拽住，梯度比贪心平缓 —— 这就是它既定向又不放弃最优性的样子。
+          </NoteItem>
+          <NoteItem term="BFS">
+            键是入队序号，亮度呈一层一层的条带，同层之间没有优劣。
+          </NoteItem>
+        </NoteList>
       </NoteSection>
 
       <NoteSection title="四个算法其实是同一个">

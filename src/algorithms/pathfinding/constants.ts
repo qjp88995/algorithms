@@ -86,9 +86,20 @@ export const gridColors = {
   /** closed 区域按展开顺序在这两色之间渐变，能看出扩张的波前 */
   closedFrom: '#1e3a5f',
   closedTo: '#6d3f8a',
-  open: '#5ad1c8',
-  /** 刚展开那一瞬间的高亮，会在 PULSE_SPAN 内衰减回渐变色 */
-  pulse: '#b7f4ff',
+  /**
+   * 边界按排序键在这两色之间渐变：越亮的越靠近队首，下一个就轮到它。
+   * 边界画成一整片同色的话，看到的只是"一团东西在长大"——
+   * 而算法之间真正不同的，恰恰是这一圈里谁排在前面。
+   */
+  openNext: '#8ef7e4',
+  openLate: '#256b66',
+  /**
+   * 刚展开那一瞬间的高亮，会在 PULSE_SPAN 内衰减回渐变色。
+   * 走紫白而不是青白：青色让给边界的梯度，否则波前一闪就把它盖住了。
+   */
+  pulse: '#e4d2ff',
+  /** 正在展开的那一格 —— 搜索的游标 */
+  cursor: '#ffffff',
   path: '#f0c05a',
   walker: '#fff3c4',
   start: '#5ad1c8',

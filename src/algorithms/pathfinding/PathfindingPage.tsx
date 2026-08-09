@@ -21,6 +21,7 @@ export function PathfindingPage() {
     speed,
     brush,
     compare,
+    stepId,
     patchConfig,
     selectAlgorithm,
     setSpeed,
@@ -29,6 +30,7 @@ export function PathfindingPage() {
     paint,
     play,
     pause,
+    step,
     reset,
     solve,
     buildMaze,
@@ -51,6 +53,7 @@ export function PathfindingPage() {
     instant,
     running,
     speed,
+    stepId,
     onPaint: paint,
     onFinished: handleFinished,
   };
@@ -67,6 +70,7 @@ export function PathfindingPage() {
           running={running}
           onPlay={play}
           onPause={pause}
+          onStep={step}
           onReset={reset}
           onSolve={solve}
           speed={speed}

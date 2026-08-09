@@ -39,6 +39,8 @@ export interface PathfindingBoardProps {
   running: boolean;
   /** 每帧展开的节点数 */
   speed: number;
+  /** 递增即展开一个节点。用计数器而不是回调，rAF 循环才不用重建 */
+  stepId: number;
   onPaint: (index: number, kind: DragKind) => void;
   onFinished: () => void;
   /** 对比模式下每块画布顶部标出算法名 */
@@ -54,6 +56,7 @@ export function PathfindingBoard({
   instant,
   running,
   speed,
+  stepId,
   onPaint,
   onFinished,
   title,
@@ -86,10 +89,12 @@ export function PathfindingBoard({
   const reportedDoneRef = useRef<boolean | null>(null);
 
   // 播放参数和回调都放进 ref，rAF 循环才能只建立一次
-  const liveRef = useRef({ running, speed, onFinished });
+  const liveRef = useRef({ running, speed, stepId, onFinished });
   useEffect(() => {
-    liveRef.current = { running, speed, onFinished };
+    liveRef.current = { running, speed, stepId, onFinished };
   });
+  /** 已经执行过的单步计数。初值取挂载时的 stepId，挂载本身不算一步 */
+  const steppedRef = useRef(stepId);
 
   const draw = () => {
     const canvas = canvasRef.current;
@@ -115,13 +120,18 @@ export function PathfindingBoard({
       layerDirtyRef.current = false;
     }
 
+    // 搜索结束后游标就该收起来 —— 它停在终点上只会跟终点的圆点打架
+    const search = searchRef.current;
+    const cursor = search && !search.done ? search.expanding : -1;
+
     ctx.drawImage(layer, 0, 0, width, height);
     renderOverlay(
       ctx,
       grid,
       pathRef.current,
       animRef.current,
-      viewportRef.current
+      viewportRef.current,
+      cursor
     );
   };
 
@@ -195,6 +205,18 @@ export function PathfindingBoard({
       const search = searchRef.current;
       const live = liveRef.current;
       if (!search) return;
+
+      // 单步：展开一个节点就停。把 reportedDone 打回 null，
+      // 下面那段就会顺手把统计推上去，不用在这里单独 setState
+      if (live.stepId !== steppedRef.current) {
+        steppedRef.current = live.stepId;
+        if (!search.done) {
+          search.step();
+          reportedDoneRef.current = null;
+          layerDirtyRef.current = true;
+          dirtyRef.current = true;
+        }
+      }
 
       const wasRunning = live.running && !search.done;
       if (wasRunning) {

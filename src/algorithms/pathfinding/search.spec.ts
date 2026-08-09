@@ -1,10 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
 import { defaultConfig, SWAMP_COST } from './constants';
-import { createGrid, DIAGONAL_COST, indexOf, setSwamp, setWall } from './grid';
+import {
+  createGrid,
+  DIAGONAL_COST,
+  heuristic,
+  indexOf,
+  setSwamp,
+  setWall,
+} from './grid';
 import { generateMaze, scatterObstacles } from './maze';
 import { PathSearch } from './search';
-import type { GridModel, SearchAlgorithm, SearchConfig } from './types';
+import {
+  type GridModel,
+  NODE_CLOSED,
+  NODE_OPEN,
+  type SearchAlgorithm,
+  type SearchConfig,
+} from './types';
 
 function seededRandom(seed = 1) {
   let state = seed >>> 0;
@@ -264,6 +277,67 @@ describe('PathSearch', () => {
       .sort((a, b) => a - b);
     expect(orders.length).toBe(stats.expanded);
     expect(orders).toEqual(orders.map((_, index) => index));
+  });
+
+  // 下面这组是渲染要用的东西：边界的亮度画的就是 key，
+  // 游标画的就是 expanding。画错了看起来只是"颜色怪"，很难发现，所以钉住。
+  it('key 记的是入队时的排序键：Dijkstra 下等于 g', () => {
+    const grid = createGrid(20, 12);
+    const search = new PathSearch(grid, makeConfig({ algorithm: 'dijkstra' }));
+    search.advance(40);
+
+    let checked = 0;
+    for (let i = 0; i < search.state.length; i++) {
+      if (search.state[i] !== NODE_OPEN) continue;
+      expect(search.key[i]).toBeCloseTo(search.gScore[i], 6);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('key 记的是入队时的排序键：贪心下等于 h', () => {
+    const grid = createGrid(20, 12);
+    const config = makeConfig({ algorithm: 'greedy' });
+    const search = new PathSearch(grid, config);
+    search.advance(40);
+
+    let checked = 0;
+    for (let i = 0; i < search.state.length; i++) {
+      if (search.state[i] !== NODE_OPEN) continue;
+      expect(search.key[i]).toBeCloseTo(
+        heuristic(grid, i, grid.goal, config.heuristic),
+        6
+      );
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('弹出的总是边界里 key 最小的那个', () => {
+    const grid = createGrid(20, 12);
+    scatterObstacles(grid, 0.2, 0.2, seededRandom(7));
+    const search = new PathSearch(grid, makeConfig());
+
+    for (let round = 0; round < 30 && !search.done; round++) {
+      let best = Infinity;
+      for (let i = 0; i < search.state.length; i++) {
+        if (search.state[i] === NODE_OPEN && search.key[i] < best) {
+          best = search.key[i];
+        }
+      }
+      search.step();
+      expect(search.key[search.expanding]).toBeCloseTo(best, 6);
+    }
+  });
+
+  it('expanding 跟着游标走，第一步展开的是起点', () => {
+    const grid = createGrid(20, 12);
+    const search = new PathSearch(grid, makeConfig());
+    expect(search.expanding).toBe(-1);
+
+    search.step();
+    expect(search.expanding).toBe(grid.start);
+    expect(search.state[grid.start]).toBe(NODE_CLOSED);
   });
 
   it('对角代价是 √2 而不是 1', () => {

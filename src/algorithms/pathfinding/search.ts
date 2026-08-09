@@ -31,6 +31,12 @@ export class PathSearch {
   readonly state: Uint8Array;
   /** 展开顺序，用于把搜索波前画成渐变色；-1 表示尚未展开 */
   readonly order: Int32Array;
+  /**
+   * 每个节点入队时的排序键。搜索本身不需要它（键存在堆里），
+   * 但它是这个演示最该看见的东西：边界上谁的键小谁就先被展开，
+   * 而"键怎么算"正是四个算法唯一的区别。
+   */
+  readonly key: Float32Array;
   readonly gScore: Float32Array;
   readonly cameFrom: Int32Array;
 
@@ -40,6 +46,7 @@ export class PathSearch {
   private expanded = 0;
   private finished = false;
   private reached = false;
+  private current = -1;
 
   constructor(grid: GridModel, config: SearchConfig) {
     this.grid = grid;
@@ -48,12 +55,14 @@ export class PathSearch {
     const size = grid.cols * grid.rows;
     this.state = new Uint8Array(size);
     this.order = new Int32Array(size).fill(-1);
+    this.key = new Float32Array(size);
     this.gScore = new Float32Array(size).fill(Infinity);
     this.cameFrom = new Int32Array(size).fill(-1);
 
     this.gScore[grid.start] = 0;
     this.state[grid.start] = NODE_OPEN;
-    this.open.push(this.priority(grid.start, 0), this.sequence++, grid.start);
+    this.key[grid.start] = this.priority(grid.start, 0);
+    this.open.push(this.key[grid.start], this.sequence++, grid.start);
   }
 
   get done() {
@@ -64,11 +73,17 @@ export class PathSearch {
     return this.reached;
   }
 
+  /** 最近一次被展开的节点，用来在画布上标出搜索的游标；-1 表示还没开始 */
+  get expanding() {
+    return this.current;
+  }
+
   /** 展开一个节点，返回搜索是否已经结束 */
   step(): boolean {
     if (this.finished) return true;
 
     const current = this.popNext();
+    this.current = current;
     if (current < 0) {
       // open 空了还没到终点：起点和终点之间被墙完全隔断
       this.finished = true;
@@ -112,7 +127,8 @@ export class PathSearch {
         this.gScore[next] = tentative;
         this.cameFrom[next] = current;
         this.state[next] = NODE_OPEN;
-        this.open.push(this.priority(next, tentative), this.sequence++, next);
+        this.key[next] = this.priority(next, tentative);
+        this.open.push(this.key[next], this.sequence++, next);
         continue;
       }
 
@@ -121,9 +137,10 @@ export class PathSearch {
       this.gScore[next] = tentative;
       this.cameFrom[next] = current;
       this.state[next] = NODE_OPEN;
+      this.key[next] = this.priority(next, tentative);
       // 惰性删除：不做 decrease-key，直接重复入堆，
       // 弹出时用 gScore 校验是否为过期条目
-      this.open.push(this.priority(next, tentative), this.sequence++, next);
+      this.open.push(this.key[next], this.sequence++, next);
     }
 
     return false;
