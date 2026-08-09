@@ -1,3 +1,5 @@
+import { MinHeap } from '@/lib/min-heap';
+
 import { heuristic, neighbors, stepCost } from './grid';
 import {
   type GridModel,
@@ -208,73 +210,5 @@ export class PathSearch {
     const h = heuristic(this.grid, node, this.grid.goal, kind);
     if (algorithm === 'greedy') return h;
     return g + heuristicWeight * h;
-  }
-}
-
-/**
- * 二叉最小堆。key 相同时按入堆序号先进先出 —— 这个 tie-break 让
- * BFS 能直接复用堆（key 恒等于序号时堆就是一个 FIFO 队列）。
- */
-class MinHeap {
-  private keys: number[] = [];
-  private seqs: number[] = [];
-  private items: number[] = [];
-
-  get size() {
-    return this.items.length;
-  }
-
-  push(key: number, seq: number, item: number) {
-    this.keys.push(key);
-    this.seqs.push(seq);
-    this.items.push(item);
-    this.bubbleUp(this.items.length - 1);
-  }
-
-  pop(): number {
-    const item = this.items[0];
-    const last = this.items.length - 1;
-    if (last > 0) {
-      this.swap(0, last);
-    }
-    this.keys.pop();
-    this.seqs.pop();
-    this.items.pop();
-    if (this.items.length > 0) this.sinkDown(0);
-    return item;
-  }
-
-  private less(a: number, b: number) {
-    if (this.keys[a] !== this.keys[b]) return this.keys[a] < this.keys[b];
-    return this.seqs[a] < this.seqs[b];
-  }
-
-  private swap(a: number, b: number) {
-    [this.keys[a], this.keys[b]] = [this.keys[b], this.keys[a]];
-    [this.seqs[a], this.seqs[b]] = [this.seqs[b], this.seqs[a]];
-    [this.items[a], this.items[b]] = [this.items[b], this.items[a]];
-  }
-
-  private bubbleUp(index: number) {
-    while (index > 0) {
-      const parent = (index - 1) >> 1;
-      if (!this.less(index, parent)) break;
-      this.swap(index, parent);
-      index = parent;
-    }
-  }
-
-  private sinkDown(index: number) {
-    const length = this.items.length;
-    for (;;) {
-      const left = index * 2 + 1;
-      const right = left + 1;
-      let smallest = index;
-      if (left < length && this.less(left, smallest)) smallest = left;
-      if (right < length && this.less(right, smallest)) smallest = right;
-      if (smallest === index) break;
-      this.swap(index, smallest);
-      index = smallest;
-    }
   }
 }
