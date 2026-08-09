@@ -1,4 +1,4 @@
-import { Bird, type LucideIcon, Waypoints } from 'lucide-react';
+import { Bird, Blocks, type LucideIcon, Waypoints } from 'lucide-react';
 
 /**
  * 算法注册表 —— 驱动图标导航、⌘K 命令面板和首页卡片。
@@ -15,7 +15,7 @@ import { Bird, type LucideIcon, Waypoints } from 'lucide-react';
 
 export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
-export type AlgorithmPath = '/boids' | '/pathfinding';
+export type AlgorithmPath = '/boids' | '/pathfinding' | '/maze-gen';
 
 export interface AlgorithmMeta {
   id: string;
@@ -54,6 +54,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '四个算法其实是同一套最佳优先搜索，只是优先队列的排序键不同 —— 换一个键，扩张形状和最优性保证就全变了。',
     tags: ['启发式', '优先队列', '四路对比'],
+  },
+  {
+    id: 'maze-gen',
+    path: '/maze-gen',
+    name: '迷宫生成',
+    enName: 'Maze Generation',
+    category: '图论',
+    icon: Blocks,
+    summary:
+      '四种算法长出的都是同一种东西 —— 一棵生成树。区别全在怎么长：钻到底再回头、从边界均匀蔓延、并查集合并、还是瞎走消环。',
+    tags: ['生成树', '并查集', '随机游走'],
   },
 ];
 
