@@ -1,3 +1,5 @@
+import { DisjointSet } from '@/lib/disjoint-set';
+
 import {
   cellCount,
   cellNeighbors,
@@ -261,9 +263,13 @@ class Kruskal extends MazeGenerator {
   readonly showsComponents = true;
 
   private readonly edges: [number, number][] = [];
-  private readonly parent: Int32Array;
+  private readonly blocks: DisjointSet;
+  /**
+   * 并查集按 walls 的下标开，墙所在的位置也各占一格。它们永远不参与
+   * 合并，所以只要在报告分量数时把这些常数个"空集合"减掉就行。
+   */
+  private readonly wallSlots: number;
   private at = 0;
-  private sets: number;
 
   constructor(grid: MazeGrid, random: () => number) {
     super(grid, random);
@@ -271,11 +277,8 @@ class Kruskal extends MazeGenerator {
     // 先把所有房间开出来，Kruskal 是从"全是孤岛"开始的
     eachCell(grid, index => this.openCell(index));
 
-    this.parent = new Int32Array(grid.walls.length).fill(-1);
-    eachCell(grid, index => {
-      this.parent[index] = index;
-    });
-    this.sets = this.total;
+    this.blocks = new DisjointSet(grid.walls.length);
+    this.wallSlots = grid.walls.length - this.total;
 
     eachCell(grid, index => {
       const count = cellNeighbors(grid, index, this.buffer);
@@ -292,13 +295,9 @@ class Kruskal extends MazeGenerator {
 
     while (this.at < this.edges.length) {
       const [a, b] = this.edges[this.at++];
-      const rootA = this.find(a);
-      const rootB = this.find(b);
       this.steps++;
-      if (rootA === rootB) continue; // 拆了会成环
+      if (!this.blocks.union(a, b)) continue; // 两边本来就连着，拆了会成环
 
-      this.parent[rootB] = rootA;
-      this.sets--;
       this.connect(a, b);
       this.cursor = b;
       return false;
@@ -309,23 +308,13 @@ class Kruskal extends MazeGenerator {
     return true;
   }
 
+  /** 只对通道格有意义 —— 画布也只在通道格上问这个 */
   componentOf(index: number): number {
-    if (this.parent[index] < 0) return 0;
-    return this.find(index);
+    return this.blocks.find(index);
   }
 
   protected activeSize() {
-    return this.sets;
-  }
-
-  private find(x: number): number {
-    let node = x;
-    while (this.parent[node] !== node) {
-      // 路径压缩，顺手把树压扁
-      this.parent[node] = this.parent[this.parent[node]];
-      node = this.parent[node];
-    }
-    return node;
+    return this.blocks.count - this.wallSlots;
   }
 }
 

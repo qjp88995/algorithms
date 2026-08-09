@@ -21,7 +21,8 @@
 放在用它的地方比放在"公共"的地方更好找。`lib/graph/` 和 `lib/min-heap.ts`
 同理：前者在最短路径和最快路径两页同时要一张"看得懂的平面图"时才成立，
 后者是第三个用户（网格寻路、最短路径、最快路径）出现时才从
-`pathfinding/search.ts` 里搬出来的。
+`pathfinding/search.ts` 里搬出来的。`lib/disjoint-set.ts` 同样：它在迷宫生成的
+Kruskal 里内联待了整整一页的时间，直到最小生成树页也要用才抽出来。
 
 **`lib/graph/` 只给几何与拓扑，不给代价。** 两个图论页对"图长什么样"的要求
 完全一致，对"边多贵"的定义毫无共同点：最短路径页挂的是可正可负的整数权重，
@@ -56,7 +57,8 @@ src/
 ├── lib/hotkeys.ts       全站快捷键注册中心
 ├── lib/maze/            迷宫网格与四种生成器（生成本身是一页，寻路/走迷宫拿它当地形）
 ├── lib/graph/           平面有向图：生成、几何、命中测试（最短路径 / 最快路径共用）
-├── lib/min-heap.ts      二叉最小堆（三个搜索页共用）
+├── lib/min-heap.ts      二叉最小堆（三个搜索页 + Prim 共用）
+├── lib/disjoint-set.ts  并查集（迷宫的 Kruskal / 最小生成树共用）
 └── algorithms/<id>/     一个算法一个目录，内容全部收在里面
     ├── <Id>Page.tsx     页面：把画布和面板塞进 AlgorithmPage 的插槽
     ├── use<Id>.ts       状态中枢 + rAF 循环，产出各组件的 props
