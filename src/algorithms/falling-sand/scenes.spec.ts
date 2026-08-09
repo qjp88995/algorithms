@@ -115,10 +115,16 @@ describe('火山', () => {
     const stoneBefore = count(world, STONE);
     expect(count(world, LAVA)).toBeGreaterThan(0);
 
-    run(world, 3000);
+    // 蒸汽是暂态的：升到顶上活够寿命就凝回水，所以要盯着峰值，
+    // 跑完再数只会数到 0
+    let peakSteam = 0;
+    for (let k = 0; k < 3000; k++) {
+      world.step(OPTIONS);
+      peakSteam = Math.max(peakSteam, count(world, STEAM));
+    }
 
     expect(count(world, STONE)).toBeGreaterThan(stoneBefore);
-    expect(count(world, STEAM)).toBeGreaterThan(0);
+    expect(peakSteam).toBeGreaterThan(0);
   });
 });
 

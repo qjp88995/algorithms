@@ -51,7 +51,12 @@ import type { SandOptions, SandStats } from './types';
 
 export const CHUNK_SHIFT = 4;
 export const CHUNK = 1 << CHUNK_SHIFT;
-const CHUNK_MASK = CHUNK - 1;
+
+/**
+ * 液体找落点时能看多远。等于一个块宽 —— 见 `flow` 里那段解释：
+ * 规则的作用半径不能超过脏块唤醒能传播的半径。
+ */
+const FLOW_REACH = CHUNK;
 
 /** 四邻的偏移。反应只看上下左右：带上斜角，火会蔓延得快到看不清过程 */
 const NEIGHBOR_X = [0, 0, -1, 1];
@@ -391,11 +396,66 @@ export class SandWorld {
     if (this.tryMove(x, y, i, x + side, y + 1, id)) return;
     if (this.tryMove(x, y, i, x - side, y + 1, id)) return;
 
-    // 下不去就铺开：沿一个方向连着挪，一帧最多 dispersion 格。
-    // 这就是「水面找平」的全部实现 —— 没有压强，只有一格一格挤过去
+    // 下不去，就跨过平坦的水面去找一个**能继续往下走**的位置。
+    //
+    // 这里原本是「只要旁边空着就横向连挪几格」，那是错的：同一高度上的
+    // 平移什么都没改变 —— 高度没降、低洼没填。后果是孤零零浮在水面上的
+    // 一格水每帧随机挑一边弹出去几格，把水面搅成一排周期恰好等于
+    // dispersion 的锯齿，而且陷进极限环：形状不再变化，水却一直在跳，
+    // 所在的块永远睡不着。横向流动得有个去处才做。
+    // 看得比走得远：视野固定一个块宽，一帧仍只挪 dispersion 格。
+    // 视野只有 dispersion 的话，液面会卡成一个正好 45 度的斜坡 ——
+    // 每层比下层短 dispersion 格，上面那层刚好够不着下面的落点，
+    // 一堆水就像沙子一样堆着摊不平。
     const span = DISPERSION[id];
-    if (this.slide(x, y, i, side, span, id)) return;
-    this.slide(x, y, i, -side, span, id);
+    if (this.flow(x, y, i, side, span, id)) return;
+    if (this.flow(x, y, i, -side, span, id)) return;
+
+    // 还找不到就横着铺开，但**只有头上还压着同类液体时才允许**。
+    //
+    // 那一句限定是全部的关键：有液柱压着才是压力驱动的铺开，一堆水摊平、
+    // 一层浮油摊开靠的都是它；而表面那一格头上什么都没有，横着挪到哪儿
+    // 高度都一样 —— 让它挪，它就会每帧随机弹出去几格，把水面搅成锯齿并
+    // 永远停不下来。加了这道闸，铺开可以照旧一帧走几格，不会再有伪影。
+    if (y > 0 && this.mat[i - this.cols] === id) {
+      if (this.slide(x, y, i, side, span, id)) return;
+      this.slide(x, y, i, -side, span, id);
+    }
+    // 剩下的是液面最上那一格，头上什么都没压着，而且四下都找不到落点 ——
+    // 它就该待着不动。同一高度上的平移不改变任何东西，让它挪，它每帧
+    // 就随机弹一下，水面永远停不下来。
+  }
+
+  /**
+   * 沿一个方向找第一个「底下能走」的位置，朝它挪过去 ——
+   * 一帧最多挪 `span` 格，但**看**得到 `FLOW_REACH` 格外。
+   *
+   * 视野为什么正好是一个块宽：一格液体能因为多远之外的变化而动起来，
+   * 就得保证那么远的变化能把它所在的块叫醒。而 `touch` 只唤醒紧挨着的
+   * 块，也就是一个块宽。视野再远，规则上该流的水会因为没人叫醒它而
+   * 静静卡住 —— 关掉脏块跳过它立刻又流起来，那种 bug 极难查。
+   * **规则能看多远，唤醒就得能传多远。**
+   */
+  private flow(
+    x: number,
+    y: number,
+    i: number,
+    dir: number,
+    span: number,
+    id: number
+  ) {
+    for (let k = 1; k <= FLOW_REACH; k++) {
+      const nx = x + dir * k;
+      if (!this.inside(nx, y)) return false;
+      if (!canEnter(id, this.mat[y * this.cols + nx], 0)) return false;
+      if (!this.inside(nx, y + 1)) continue;
+      if (canEnter(id, this.mat[(y + 1) * this.cols + nx], 1)) {
+        // 落点可能比这一帧能走的远，那就朝它走 span 格，下一帧接着走
+        const step = k < span ? k : span;
+        return this.tryMove(x, y, i, x + dir * step, y, id);
+      }
+    }
+    return false;
   }
 
   private moveGas(x: number, y: number, i: number, id: number) {
@@ -505,31 +565,24 @@ export class SandWorld {
   }
 
   /**
-   * 把这一格所在的块标脏。
+   * 把这一格所在的块、连同挨着的八块一起标脏。
    *
-   * 落在块边界上时还要叫醒挨着的那一块 —— 一格像素的下一步可能跨过边界，
-   * 而那一块此刻也许正睡着。漏掉这一步的表现很典型：沙子流到块边缘就
-   * 卡住不动，直到别的东西碰它一下才继续。
+   * 为什么是整整一圈而不是只在边界上叫醒对面那块：**规则能看多远，
+   * 唤醒就得能传多远**。液体找落点的视野是一个块宽（见 `flow`），
+   * 所以块正中间的一格变了，也可能让隔壁块里某格水动起来。
+   * 只在边界叫人的话，那格水就永远没人过问 —— 症状是水面卡成一道
+   * 阶梯，而把脏块跳过关掉它立刻又流起来。
    */
   private touch(x: number, y: number) {
     const cx = x >> CHUNK_SHIFT;
     const cy = y >> CHUNK_SHIFT;
     this.mark(cx, cy);
 
-    const lx = x & CHUNK_MASK;
-    const ly = y & CHUNK_MASK;
-    const left = lx === 0;
-    const right = lx === CHUNK_MASK;
-    const top = ly === 0;
-    const bottom = ly === CHUNK_MASK;
-    if (left) this.mark(cx - 1, cy);
-    if (right) this.mark(cx + 1, cy);
-    if (top) this.mark(cx, cy - 1);
-    if (bottom) this.mark(cx, cy + 1);
-    if (left && top) this.mark(cx - 1, cy - 1);
-    if (right && top) this.mark(cx + 1, cy - 1);
-    if (left && bottom) this.mark(cx - 1, cy + 1);
-    if (right && bottom) this.mark(cx + 1, cy + 1);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx !== 0 || dy !== 0) this.mark(cx + dx, cy + dy);
+      }
+    }
   }
 
   private mark(cx: number, cy: number) {

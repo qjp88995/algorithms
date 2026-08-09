@@ -425,10 +425,36 @@ describe('脏块', () => {
   });
 
   it('开着 chunk 时，扫的量远小于整屏', () => {
-    const world = withFloor(64, 64);
-    world.set(30, 5, SAND);
+    // 世界要够大才说明问题：一粒沙会叫醒周围一圈共九个块，
+    // 在只有十六个块的小世界里那就是大半屏了
+    const world = withFloor(256, 256);
+    world.set(100, 5, SAND);
     run(world, 5);
-    expect(world.stats().scanned).toBeLessThan((world.cols * world.rows) / 4);
+    expect(world.stats().scanned).toBeLessThan((world.cols * world.rows) / 20);
+  });
+
+  /**
+   * 这一条守的是脏块跳过的**全部意义**：它只该省时间，不该改结果。
+   *
+   * 违反它的 bug 极难查 —— 画面上看是液面卡成一道阶梯、挖开的坑不再
+   * 填平，而你一关掉脏块跳过它立刻又流起来。根子在于规则的作用半径
+   * 超过了唤醒能传播的半径：远处出现了落点，这边那格水却没人叫醒。
+   */
+  it('开着脏块跳过达到的静止，关掉之后也依然静止', () => {
+    const world = withFloor(120, 60);
+    for (let y = 10; y < 59; y++) {
+      for (let x = 1; x < 14; x++) world.set(x, y, WATER);
+    }
+    for (let y = 30; y < 59; y++) {
+      for (let x = 60; x < 90; x++) world.set(x, y, SAND);
+    }
+    run(world, 1500);
+    expect(world.stats().activeChunks).toBe(0);
+
+    // 全屏扫一遍，看有没有谁本该动却被漏掉
+    world.step(options({ useChunks: false }));
+    expect(world.stats().scanned).toBe(world.cols * world.rows);
+    expect(world.stats().moved).toBe(0);
   });
 });
 
