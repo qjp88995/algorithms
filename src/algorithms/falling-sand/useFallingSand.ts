@@ -55,6 +55,7 @@ export function useFallingSand() {
     useChunks: defaultConfig.useChunks,
     alternateScan: defaultConfig.alternateScan,
     bottomUp: defaultConfig.bottomUp,
+    liquidSpread: defaultConfig.liquidSpread,
   });
 
   const [config, setConfig] = useState<SandConfig>(defaultConfig);
@@ -113,7 +114,13 @@ export function useFallingSand() {
     optionsRef.current.useChunks = config.useChunks;
     optionsRef.current.alternateScan = config.alternateScan;
     optionsRef.current.bottomUp = config.bottomUp;
-  }, [config.useChunks, config.alternateScan, config.bottomUp]);
+    optionsRef.current.liquidSpread = config.liquidSpread;
+  }, [
+    config.useChunks,
+    config.alternateScan,
+    config.bottomUp,
+    config.liquidSpread,
+  ]);
 
   // ─── 渲染循环 ───────────────────────────────────────────────
   useEffect(() => {

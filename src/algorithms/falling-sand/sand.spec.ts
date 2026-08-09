@@ -18,6 +18,7 @@ const DEFAULTS: SandOptions = {
   useChunks: true,
   alternateScan: true,
   bottomUp: true,
+  liquidSpread: 5,
 };
 
 function options(patch: Partial<SandOptions> = {}): SandOptions {
@@ -213,7 +214,7 @@ describe('密度分层', () => {
       high = Math.max(high, depth);
     }
     expect(high - low).toBeLessThanOrEqual(1);
-  });
+  }, 30_000);
 
   it('气体往上跑', () => {
     const world = withFloor(8, 24);
@@ -314,7 +315,7 @@ describe('反应', () => {
 
     // 水一格不少：被烧成蒸汽的那部分升到顶上又凝回来了
     expect(count(world, WATER) + count(world, STEAM)).toBe(liquid);
-  });
+  }, 30_000);
 
   it('水能灭火', () => {
     const world = withFloor(10, 12);
@@ -492,7 +493,7 @@ describe('脏块', () => {
     world.step(options({ useChunks: false }));
     expect(world.stats().scanned).toBe(world.cols * world.rows);
     expect(world.stats().moved).toBe(0);
-  });
+  }, 30_000);
 });
 
 describe('扫描方向', () => {

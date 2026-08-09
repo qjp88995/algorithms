@@ -17,6 +17,7 @@ export const defaultConfig: SandConfig = {
   useChunks: true,
   alternateScan: true,
   bottomUp: true,
+  liquidSpread: 5,
 };
 
 export const INITIAL_SCENE = 'hourglass';
@@ -29,6 +30,9 @@ export const MAX_BRUSH = 24;
 
 export const MIN_STEPS = 1;
 export const MAX_STEPS = 4;
+
+export const MIN_SPREAD = 1;
+export const MAX_SPREAD = 8;
 
 /**
  * 网格规模上限。cellSize 拉到 2 时一屏能有三十多万格，

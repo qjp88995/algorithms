@@ -111,6 +111,8 @@ export class SandWorld {
   private scanned = 0;
   private moved = 0;
   private awake = 0;
+  /** 本帧生效的液体铺开上限，`step` 开头从选项里取一次 */
+  private spread = 99;
 
   constructor(cols: number, rows: number, seed = 1) {
     this.cols = cols;
@@ -242,6 +244,7 @@ export class SandWorld {
     this.frame++;
     this.scanned = 0;
     this.moved = 0;
+    this.spread = options.liquidSpread;
 
     const { chunkActive, pending, chunkCols, chunkRows, cols, rows } = this;
     if (options.useChunks) {
@@ -407,7 +410,8 @@ export class SandWorld {
     // 视野只有 dispersion 的话，液面会卡成一个正好 45 度的斜坡 ——
     // 每层比下层短 dispersion 格，上面那层刚好够不着下面的落点，
     // 一堆水就像沙子一样堆着摊不平。
-    const span = DISPERSION[id];
+    // 和面板上的上限取小：材质自己的黏稠度是上界，用户只能让它更黏
+    const span = Math.min(DISPERSION[id], this.spread);
     if (this.flow(x, y, i, side, span, id)) return;
     if (this.flow(x, y, i, -side, span, id)) return;
 
@@ -455,7 +459,12 @@ export class SandWorld {
     span: number,
     id: number
   ) {
-    for (let k = 1; k <= FLOW_REACH; k++) {
+    // 视野跟着铺开距离走：**传得多快是视野定的，不是一帧挪几格定的**。
+    // 一格水能看见多远，多远之外的扰动就能在下一帧让它动起来 ——
+    // 视野 16 格时，两百格外的水十几帧就跟着降了，看着像整片一起塌。
+    // 上限仍是一个块宽，那是唤醒能传播的距离。
+    const reach = Math.min(FLOW_REACH, span * 4);
+    for (let k = 1; k <= reach; k++) {
       const nx = x + dir * k;
       if (!this.inside(nx, y)) return false;
       if (!canEnter(id, this.mat[y * this.cols + nx], 0)) return false;

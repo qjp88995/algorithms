@@ -10,9 +10,11 @@ import { cn } from '@/lib/cn';
 import {
   MAX_BRUSH,
   MAX_CELL_SIZE,
+  MAX_SPREAD,
   MAX_STEPS,
   MIN_BRUSH,
   MIN_CELL_SIZE,
+  MIN_SPREAD,
   MIN_STEPS,
 } from '../constants';
 import { EMPTY, MATERIALS, PALETTE } from '../materials';
@@ -133,6 +135,15 @@ export function SandControls({
           max={MAX_STEPS}
           hint="一帧跑几遍模拟。调大 = 流体更快，帧率更低"
           onChange={stepsPerFrame => onPatch({ stepsPerFrame })}
+        />
+        <SliderControl
+          label="液体铺开距离"
+          value={config.liquidSpread}
+          min={MIN_SPREAD}
+          max={MAX_SPREAD}
+          unit=" 格"
+          hint="一帧最多横着挪几格，也就是黏稠度。调到 1 水流得像蜂蜜（岩浆本来就是 1）"
+          onChange={liquidSpread => onPatch({ liquidSpread })}
         />
       </ControlGroup>
 

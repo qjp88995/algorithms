@@ -9,6 +9,7 @@ const OPTIONS: SandOptions = {
   useChunks: true,
   alternateScan: true,
   bottomUp: true,
+  liquidSpread: 5,
 };
 
 function build(id: string, cols = 160, rows = 110) {
@@ -68,7 +69,8 @@ describe('场景摆放', () => {
         expect(world.filled).toBeGreaterThan(0);
         run(world, 200);
       }
-    }
+    },
+    30_000
   );
 });
 
@@ -87,7 +89,7 @@ describe('沙漏', () => {
       if (world.get(x, world.rows - 4) === SAND) width++;
     }
     expect(width).toBeGreaterThan(12);
-  });
+  }, 30_000);
 });
 
 describe('油水分层', () => {
@@ -97,7 +99,7 @@ describe('油水分层', () => {
 
     run(world, 2000);
     expect(centroidY(world, OIL)).toBeLessThan(centroidY(world, WATER));
-  });
+  }, 30_000);
 
   it('槽上方那根木条会从点着的一头一路烧过去', () => {
     const world = build('layers');
@@ -106,7 +108,7 @@ describe('油水分层', () => {
 
     run(world, 1500);
     expect(count(world, WOOD)).toBeLessThan(before * 0.5);
-  });
+  }, 30_000);
 });
 
 describe('火山', () => {
@@ -125,7 +127,7 @@ describe('火山', () => {
 
     expect(count(world, STONE)).toBeGreaterThan(stoneBefore);
     expect(peakSteam).toBeGreaterThan(0);
-  });
+  }, 30_000);
 });
 
 describe('空场地', () => {

@@ -64,6 +64,14 @@ export interface SandOptions {
   alternateScan: boolean;
   /** 自底向上扫。关掉就是自顶向下 —— 一粒沙一帧掉到底 */
   bottomUp: boolean;
+  /**
+   * 液体一帧最多横着挪几格，会和材质自己的 dispersion 取小。
+   *
+   * 它决定的是**扰动传得多快**：默认值下，挖开一处水面，两百格外的水
+   * 十几帧就开始跟着降 —— 也就是六分之一秒，看着像是整片一起塌。
+   * 调到 1，同一件事要花上百帧，才看得见「最近的水先补，再一圈圈传出去」。
+   */
+  liquidSpread: number;
 }
 
 export interface SandStats {
@@ -90,4 +98,5 @@ export interface SandConfig {
   useChunks: boolean;
   alternateScan: boolean;
   bottomUp: boolean;
+  liquidSpread: number;
 }
