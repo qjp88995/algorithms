@@ -9,6 +9,7 @@ import {
   type LucideIcon,
   Network,
   Scale,
+  Shapes,
   Waves,
   Waypoints,
 } from 'lucide-react';
@@ -26,7 +27,7 @@ import {
  * 仍然受 TanStack Router 的类型检查保护。
  */
 
-export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
+export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索' | '聚类';
 
 export type AlgorithmPath =
   | '/boids'
@@ -39,7 +40,8 @@ export type AlgorithmPath =
   | '/pareto-path'
   | '/turn-cost'
   | '/spanning-tree'
-  | '/max-flow';
+  | '/max-flow'
+  | '/clustering';
 
 export interface AlgorithmMeta {
   id: string;
@@ -166,6 +168,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '四种算法长出的都是同一种东西 —— 一棵生成树。区别全在怎么长：钻到底再回头、从边界均匀蔓延、并查集合并、还是瞎走消环。',
     tags: ['生成树', '并查集', '随机游走'],
+  },
+  {
+    id: 'clustering',
+    path: '/clustering',
+    name: '聚类',
+    enName: 'K-means / DBSCAN / Hierarchical',
+    category: '聚类',
+    icon: Shapes,
+    summary:
+      '三个算法对「簇是什么」的假设完全不同：球、稠密区域、还是一路合并出来的。换一份数据，赢家就换人 —— 而输的那个不会报错。',
+    tags: ['非凸形状', '初值敏感', '参数即假设'],
   },
   {
     id: 'maze-runner',
