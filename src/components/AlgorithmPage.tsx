@@ -30,7 +30,7 @@ export function AlgorithmPage({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-line px-4">
+      <header className="flex h-11 shrink-0 items-center gap-3 border-b border-line px-3">
         <h1 className="text-sm font-medium">{meta.name}</h1>
         <span className="font-mono text-xs text-faint">{meta.enName}</span>
         {notes ? (

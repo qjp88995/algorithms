@@ -34,7 +34,7 @@ export function NavRail({ onOpenPalette }: { onOpenPalette: () => void }) {
       >
         <Link
           to="/"
-          className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 text-sm font-medium whitespace-nowrap"
+          className="flex h-11 shrink-0 items-center gap-3 border-b border-line px-4.5 text-sm font-medium whitespace-nowrap"
           title="算法演示"
         >
           <Binary className="size-5 shrink-0 text-accent" />
@@ -61,7 +61,7 @@ export function NavRail({ onOpenPalette }: { onOpenPalette: () => void }) {
                     to={item.path}
                     title={item.name}
                     className={cn(
-                      'mx-2 flex items-center gap-3 rounded-md px-2 py-2 text-sm whitespace-nowrap transition-colors duration-120',
+                      'mx-2 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap transition-colors duration-120',
                       active
                         ? 'bg-raised text-ink'
                         : 'text-muted hover:bg-raised hover:text-ink'
@@ -84,7 +84,7 @@ export function NavRail({ onOpenPalette }: { onOpenPalette: () => void }) {
           type="button"
           onClick={onOpenPalette}
           title="搜索算法（⌘K）"
-          className="m-2 flex items-center gap-3 rounded-md px-2 py-2 text-sm whitespace-nowrap text-muted transition-colors duration-120 hover:bg-raised hover:text-ink"
+          className="m-2 flex items-center gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap text-muted transition-colors duration-120 hover:bg-raised hover:text-ink"
         >
           <Command className="size-5 shrink-0" />
           <span className={cn(!expanded && 'opacity-0')}>搜索算法</span>
