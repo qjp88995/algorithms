@@ -7,6 +7,7 @@ import {
   Gauge,
   GitFork,
   Grid3x3,
+  Hourglass,
   type LucideIcon,
   Network,
   Scale,
@@ -34,6 +35,7 @@ export type AlgorithmCategory =
 export type AlgorithmPath =
   | '/boids'
   | '/cellular-automata'
+  | '/falling-sand'
   | '/sorting'
   | '/pathfinding'
   | '/maze-gen'
@@ -83,6 +85,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '规则一共十八个二进制位。B3/S23 能造出永远吐飞船的机器，改动一位就烧成一片灰 —— 而一个格局会不会停下来，只能跑，算不出来。',
     tags: ['局部规则', '图灵完备', '不可判定'],
+  },
+  {
+    id: 'falling-sand',
+    path: '/falling-sand',
+    name: '落沙模拟',
+    enName: 'Falling Sand / Falling Everything',
+    category: '元胞自动机',
+    icon: Hourglass,
+    summary:
+      '一格像素只会问三句话：正下方能去吗、左下呢、右下呢。沙堆的坡角、水面的找平、油浮在水上，全是这三句的副产品 —— 而它跑得动，靠的是「没动过的块整块不算」。',
+    tags: ['异步更新', '脏块跳过', '密度分层'],
   },
   {
     id: 'sorting',
