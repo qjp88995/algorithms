@@ -3,6 +3,7 @@ import {
   Blocks,
   Footprints,
   type LucideIcon,
+  Network,
   Waypoints,
 } from 'lucide-react';
 
@@ -22,7 +23,7 @@ import {
 export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
 export type AlgorithmPath =
-  '/boids' | '/pathfinding' | '/maze-gen' | '/maze-runner';
+  '/boids' | '/pathfinding' | '/maze-gen' | '/maze-runner' | '/shortest-path';
 
 export interface AlgorithmMeta {
   id: string;
@@ -61,6 +62,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '四个算法其实是同一套最佳优先搜索，只是优先队列的排序键不同 —— 换一个键，扩张形状和最优性保证就全变了。',
     tags: ['启发式', '优先队列', '四路对比'],
+  },
+  {
+    id: 'shortest-path',
+    path: '/shortest-path',
+    name: '最短路径',
+    enName: 'Dijkstra / Bellman-Ford / Floyd-Warshall',
+    category: '图论',
+    icon: Network,
+    summary:
+      '离开网格，回到一般加权图：边可以有方向、正反不同价、甚至为负。Dijkstra 那句「这个点定稿了」到底凭什么成立，负权一出现就见分晓。',
+    tags: ['松弛', '负权与负环', '全源最短路'],
   },
   {
     id: 'maze-gen',
