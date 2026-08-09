@@ -62,19 +62,29 @@ export function renderFlock(
   }
 
   if (config.pointer.active) {
+    const { x, y, radius, mode } = config.pointer;
+    if (mode === 'predator') {
+      // 捕食者画得更醒目：作用范围加实心核心，一眼看出恐慌区在哪
+      ctx.fillStyle = canvasColors.predatorCore;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = canvasColors.predatorRing;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = canvasColors.predatorRing;
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
     ctx.strokeStyle =
-      config.pointer.mode === 'attract'
-        ? canvasColors.attractRing
-        : canvasColors.repelRing;
+      mode === 'attract' ? canvasColors.attractRing : canvasColors.repelRing;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(
-      config.pointer.x,
-      config.pointer.y,
-      config.pointer.radius,
-      0,
-      Math.PI * 2
-    );
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.stroke();
   }
 }

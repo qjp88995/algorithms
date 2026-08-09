@@ -4,6 +4,7 @@ import {
   NoteLegend,
   NoteList,
   NoteSection,
+  NoteTable,
 } from '@/components/notes';
 
 import { forceColors } from '../constants';
@@ -45,6 +46,64 @@ export function BoidsNotes() {
           积分得到新的速度和位置。
         </p>
         <p>把「转向力上限」调小，整群会显得笨重而有惯性；调大则灵活到失真。</p>
+      </NoteSection>
+
+      <NoteSection title="鸟群和鱼群是一回事吗">
+        <p>
+          算法层面是。Reynolds 原论文就写明这个模型同时适用于 flock（鸟群）、
+          herd（兽群）和 school（鱼群），三条规则一字不改。差别全在参数里。
+        </p>
+        <NoteTable
+          head={['', '鸟', '鱼']}
+          rows={[
+            ['感知', '视觉，后方有盲区', '视觉 + 侧线，近场无盲区'],
+            ['最低速度', '必须 > 0，否则失速', '可到 0，能悬停'],
+            ['分离', '相对弱', '更强更精确'],
+            ['邻居选择', '拓扑（最近 k 个）', '偏度量（按距离）'],
+          ]}
+        />
+        <p>面板顶部的两个物种预设就是这么配出来的，切过去看形态差别。</p>
+      </NoteSection>
+
+      <NoteSection title="度量感知 vs 拓扑感知">
+        <p>
+          这是 Boids 里最容易被忽略、但影响最大的一个选择：
+          <span className="text-ink">邻居到底是怎么选出来的</span>。
+        </p>
+        <NoteList>
+          <NoteItem term="度量">
+            视野半径内的所有同伴。群体一旦被拉稀疏，邻居数骤减，很容易失联解体。
+          </NoteItem>
+          <NoteItem term="拓扑">
+            固定跟最近的 k 个同伴互动，不管它们多远。密度怎么变，邻居数都不变。
+          </NoteItem>
+        </NoteList>
+        <p>
+          2008 年 Ballerini 等人对椋鸟群做三维重建，发现真实的鸟用的是拓扑方式，
+          <NoteCode>k ≈ 6–7</NoteCode>
+          。这解释了椋鸟群为什么能在被猎隼冲散后迅速重聚 ——
+          密度剧变不影响互动结构。想看这个区别：切到拓扑、把数量调低，
+          再用捕食者把群冲散，对比两种模式下群体会不会散架。
+        </p>
+      </NoteSection>
+
+      <NoteSection title="捕食者：三种反应都是涌现的">
+        <p>
+          把鼠标干预切到「捕食者」，代码里只多做了两件事：近距离放大排斥，
+          同时按恐慌程度放大聚合权重。下面三种现象没有任何一种是专门编码的：
+        </p>
+        <NoteList>
+          <NoteItem term="闪散 flash expansion">
+            捕食者突然贴近时整片瞬间炸开 —— 排斥项在近距离急剧放大的结果。
+          </NoteItem>
+          <NoteItem term="喷泉效应 fountain effect">
+            慢慢划过群体，个体从两侧绕开、再在身后合拢 ——
+            排斥把它们推开，放大的聚合又把它们拉回来。
+          </NoteItem>
+          <NoteItem term="饵球 bait ball">
+            停在群体边缘不动，剩下的个体会抱成密集一团 —— 聚合压过排斥的平衡点。
+          </NoteItem>
+        </NoteList>
       </NoteSection>
 
       <NoteSection title="为什么值得看">

@@ -1,4 +1,13 @@
-import { EDGE_MARGIN, FLOCK_CAPACITY } from './constants';
+import {
+  EDGE_MARGIN,
+  FLOCK_CAPACITY,
+  MAX_NEIGHBOR_COUNT,
+  MAX_NEIGHBORS,
+  MAX_SEARCH_RINGS,
+  PREDATOR_COHESION_BOOST,
+  PREDATOR_PANIC_GAIN,
+  TOPOLOGICAL_CELL_SIZE,
+} from './constants';
 import type { BoidsConfig, FlockMetrics, Steering } from './types';
 
 /**
@@ -42,6 +51,14 @@ export class Flock {
 
   /** 上一帧的邻居总数，用于统计 */
   private neighborTotal = 0;
+
+  // ─── 邻居收集的复用缓冲（每次查询覆盖写，零分配）─────────────
+  private readonly neighborIndices = new Int32Array(MAX_NEIGHBORS);
+  private readonly neighborDist2 = new Float32Array(MAX_NEIGHBORS);
+  /** 拓扑模式下按距离升序保存的最近 k 个 */
+  private readonly knnIndex = new Int32Array(MAX_NEIGHBOR_COUNT);
+  private readonly knnDist = new Float32Array(MAX_NEIGHBOR_COUNT);
+  private knnCount = 0;
 
   /** step 内复用的临时对象，避免每帧分配 */
   private readonly scratch: Steering = {
@@ -135,10 +152,9 @@ export class Flock {
       const s = this.computeSteering(i, config, this.scratch);
       this.neighborTotal += s.neighbors;
 
-      let ax = s.sepX * separationWeight + s.aliX * alignmentWeight;
-      let ay = s.sepY * separationWeight + s.aliY * alignmentWeight;
-      ax += s.cohX * cohesionWeight;
-      ay += s.cohY * cohesionWeight;
+      let ax = 0;
+      let ay = 0;
+      let cohesionScale = cohesionWeight;
 
       if (pointer.active) {
         const dx = pointer.x - this.x[i];
@@ -148,11 +164,26 @@ export class Flock {
           // 越靠近作用越强，符号决定吸引还是驱散
           const falloff = 1 - dist / pointer.radius;
           const sign = pointer.mode === 'attract' ? 1 : -1;
-          const scale = (sign * pointer.strength * maxForce * falloff) / dist;
+          let gain = 1;
+          if (pointer.mode === 'predator') {
+            // 恐慌同时放大两件事：排斥制造爆散，聚合把被冲散的个体
+            // 拉回同伴身边 —— 绕到捕食者身后合拢（喷泉效应）或抱成
+            // 一团（饵球）都是这两股力此消彼长的结果，没有专门编码。
+            gain = 1 + falloff * PREDATOR_PANIC_GAIN;
+            cohesionScale =
+              cohesionWeight * (1 + falloff * PREDATOR_COHESION_BOOST);
+          }
+          const scale =
+            (sign * pointer.strength * maxForce * falloff * gain) / dist;
           ax += dx * scale;
           ay += dy * scale;
         }
       }
+
+      ax += s.sepX * separationWeight + s.aliX * alignmentWeight;
+      ay += s.sepY * separationWeight + s.aliY * alignmentWeight;
+      ax += s.cohX * cohesionScale;
+      ay += s.cohY * cohesionScale;
 
       if (edgeMode === 'bounce') {
         // 靠近边界时施加一个向内的转向力，比硬反弹自然得多
@@ -229,25 +260,14 @@ export class Flock {
    * 每条规则单独限幅到 maxForce）。结果写进 out 并返回，避免分配。
    */
   computeSteering(i: number, config: BoidsConfig, out: Steering): Steering {
-    this.ensureGrid(config);
-    const {
-      perceptionRadius,
-      separationRadius,
-      fieldOfView,
-      maxSpeed,
-      maxForce,
-    } = config;
-
-    const perception2 = perceptionRadius * perceptionRadius;
+    const count = this.collectNeighbors(i, config);
+    const { separationRadius, maxSpeed, maxForce } = config;
     const separation2 = separationRadius * separationRadius;
-    const fovCos = Math.cos((Math.min(fieldOfView, 360) * Math.PI) / 360);
-    const fullView = fieldOfView >= 360;
 
     const px = this.x[i];
     const py = this.y[i];
     const pvx = this.vx[i];
     const pvy = this.vy[i];
-    const pSpeed = Math.hypot(pvx, pvy) || 1;
 
     let sepX = 0;
     let sepY = 0;
@@ -255,50 +275,26 @@ export class Flock {
     let aliY = 0;
     let cohX = 0;
     let cohY = 0;
-    let neighbors = 0;
     let separated = 0;
 
-    const col = this.colOf(px);
-    const row = this.rowOf(py);
+    for (let n = 0; n < count; n++) {
+      const j = this.neighborIndices[n];
+      const d2 = this.neighborDist2[n];
 
-    for (let r = row - 1; r <= row + 1; r++) {
-      if (r < 0 || r >= this.rows) continue;
-      for (let c = col - 1; c <= col + 1; c++) {
-        if (c < 0 || c >= this.cols) continue;
-        const cell = r * this.cols + c;
-        const end = this.cellStart[cell + 1];
-        for (let k = this.cellStart[cell]; k < end; k++) {
-          const j = this.cellItems[k];
-          if (j === i) continue;
+      aliX += this.vx[j];
+      aliY += this.vy[j];
+      cohX += this.x[j];
+      cohY += this.y[j];
 
-          const dx = this.x[j] - px;
-          const dy = this.y[j] - py;
-          const d2 = dx * dx + dy * dy;
-          if (d2 > perception2 || d2 === 0) continue;
-
-          if (!fullView) {
-            // 身后的邻居看不见：与自身朝向的夹角超出视野角就跳过
-            const dist = Math.sqrt(d2);
-            if ((pvx * dx + pvy * dy) / (pSpeed * dist) < fovCos) continue;
-          }
-
-          neighbors++;
-          aliX += this.vx[j];
-          aliY += this.vy[j];
-          cohX += this.x[j];
-          cohY += this.y[j];
-
-          if (d2 < separation2) {
-            // 排斥力与距离成反比：越近推得越狠
-            sepX -= dx / d2;
-            sepY -= dy / d2;
-            separated++;
-          }
-        }
+      if (d2 < separation2) {
+        // 排斥力与距离成反比：越近推得越狠
+        sepX -= (this.x[j] - px) / d2;
+        sepY -= (this.y[j] - py) / d2;
+        separated++;
       }
     }
 
-    out.neighbors = neighbors;
+    out.neighbors = count;
     out.sepX = 0;
     out.sepY = 0;
     out.aliX = 0;
@@ -312,10 +308,10 @@ export class Flock {
       out.sepY = steer.y;
     }
 
-    if (neighbors > 0) {
+    if (count > 0) {
       const ali = steerToward(
-        aliX / neighbors,
-        aliY / neighbors,
+        aliX / count,
+        aliY / count,
         pvx,
         pvy,
         maxSpeed,
@@ -325,8 +321,8 @@ export class Flock {
       out.aliY = ali.y;
 
       const coh = steerToward(
-        cohX / neighbors - px,
-        cohY / neighbors - py,
+        cohX / count - px,
+        cohY / count - py,
         pvx,
         pvy,
         maxSpeed,
@@ -339,15 +335,33 @@ export class Flock {
     return out;
   }
 
-  /** 取出第 i 只鸟视野内的邻居下标，仅用于可视化，会分配数组 */
+  /** 取出实际参与计算的邻居下标，仅用于可视化，会分配数组 */
   neighborsOf(i: number, config: BoidsConfig): number[] {
+    const count = this.collectNeighbors(i, config);
+    const result = new Array<number>(count);
+    for (let n = 0; n < count; n++) result[n] = this.neighborIndices[n];
+    return result;
+  }
+
+  /**
+   * 把参与计算的邻居收集到复用缓冲里，返回数量。
+   * 两种感知模式的差别全部收敛在这里，上层的力计算完全一致。
+   */
+  private collectNeighbors(i: number, config: BoidsConfig): number {
     this.ensureGrid(config);
-    const result: number[] = [];
+    return config.perception === 'topological'
+      ? this.collectNearest(i, config)
+      : this.collectWithinRadius(i, config);
+  }
+
+  /** 度量模式：视野半径内的全部邻居 */
+  private collectWithinRadius(i: number, config: BoidsConfig): number {
     const perception2 = config.perceptionRadius * config.perceptionRadius;
     const fovCos = Math.cos(
       (Math.min(config.fieldOfView, 360) * Math.PI) / 360
     );
     const fullView = config.fieldOfView >= 360;
+
     const px = this.x[i];
     const py = this.y[i];
     const pvx = this.vx[i];
@@ -356,6 +370,7 @@ export class Flock {
 
     const col = this.colOf(px);
     const row = this.rowOf(py);
+    let count = 0;
 
     for (let r = row - 1; r <= row + 1; r++) {
       if (r < 0 || r >= this.rows) continue;
@@ -366,19 +381,115 @@ export class Flock {
         for (let k = this.cellStart[cell]; k < end; k++) {
           const j = this.cellItems[k];
           if (j === i) continue;
+
           const dx = this.x[j] - px;
           const dy = this.y[j] - py;
           const d2 = dx * dx + dy * dy;
           if (d2 > perception2 || d2 === 0) continue;
           if (!fullView) {
+            // 身后的邻居看不见：与自身朝向的夹角超出视野角就跳过
             const dist = Math.sqrt(d2);
             if ((pvx * dx + pvy * dy) / (pSpeed * dist) < fovCos) continue;
           }
-          result.push(j);
+
+          if (count >= MAX_NEIGHBORS) return count;
+          this.neighborIndices[count] = j;
+          this.neighborDist2[count] = d2;
+          count++;
         }
       }
     }
-    return result;
+    return count;
+  }
+
+  /**
+   * 拓扑模式：最近的 k 个邻居，不管它们多远。
+   *
+   * 逐圈向外扩格子，凑够 k 个之后再多扫一圈才停 —— 密集时只看 3×3，
+   * 群体被拉稀疏时才会扩大搜索。正是这一点让拓扑感知的群体不会因为
+   * 变稀疏而解体。
+   */
+  private collectNearest(i: number, config: BoidsConfig): number {
+    const k = Math.max(
+      1,
+      Math.min(MAX_NEIGHBOR_COUNT, Math.floor(config.neighborCount))
+    );
+    this.knnCount = 0;
+
+    let stopAfter = -1;
+    for (let ring = 0; ring <= MAX_SEARCH_RINGS; ring++) {
+      this.scanRing(i, ring, k, config);
+      if (stopAfter >= 0 && ring >= stopAfter) break;
+      if (this.knnCount >= k) stopAfter = ring + 1;
+    }
+
+    for (let n = 0; n < this.knnCount; n++) {
+      this.neighborIndices[n] = this.knnIndex[n];
+      this.neighborDist2[n] = this.knnDist[n];
+    }
+    return this.knnCount;
+  }
+
+  /** 只扫描距离中心恰好 ring 格的那一圈，内圈上一轮已经看过 */
+  private scanRing(i: number, ring: number, k: number, config: BoidsConfig) {
+    const fovCos = Math.cos(
+      (Math.min(config.fieldOfView, 360) * Math.PI) / 360
+    );
+    const fullView = config.fieldOfView >= 360;
+
+    const px = this.x[i];
+    const py = this.y[i];
+    const pvx = this.vx[i];
+    const pvy = this.vy[i];
+    const pSpeed = Math.hypot(pvx, pvy) || 1;
+
+    const col = this.colOf(px);
+    const row = this.rowOf(py);
+
+    for (let dr = -ring; dr <= ring; dr++) {
+      const r = row + dr;
+      if (r < 0 || r >= this.rows) continue;
+      for (let dc = -ring; dc <= ring; dc++) {
+        if (Math.abs(dr) !== ring && Math.abs(dc) !== ring) continue;
+        const c = col + dc;
+        if (c < 0 || c >= this.cols) continue;
+
+        const cell = r * this.cols + c;
+        const end = this.cellStart[cell + 1];
+        for (let n = this.cellStart[cell]; n < end; n++) {
+          const j = this.cellItems[n];
+          if (j === i) continue;
+
+          const dx = this.x[j] - px;
+          const dy = this.y[j] - py;
+          const d2 = dx * dx + dy * dy;
+          if (d2 === 0) continue;
+          if (!fullView) {
+            const dist = Math.sqrt(d2);
+            if ((pvx * dx + pvy * dy) / (pSpeed * dist) < fovCos) continue;
+          }
+          this.pushNearest(k, j, d2);
+        }
+      }
+    }
+  }
+
+  /** 插入排序维护最近的 k 个，k 很小（≤16），比堆更快也不用分配 */
+  private pushNearest(k: number, index: number, d2: number) {
+    let pos = this.knnCount;
+    if (pos === k) {
+      if (d2 >= this.knnDist[k - 1]) return;
+      pos = k - 1;
+    } else {
+      this.knnCount++;
+    }
+    while (pos > 0 && this.knnDist[pos - 1] > d2) {
+      this.knnDist[pos] = this.knnDist[pos - 1];
+      this.knnIndex[pos] = this.knnIndex[pos - 1];
+      pos--;
+    }
+    this.knnDist[pos] = d2;
+    this.knnIndex[pos] = index;
   }
 
   metrics(): FlockMetrics {
@@ -421,11 +532,12 @@ export class Flock {
 
   /** 网格失效或格子尺寸需要变化时才重建，其余情况是一次廉价判断 */
   private ensureGrid(config: BoidsConfig) {
-    const radius = Math.max(
-      8,
-      config.perceptionRadius,
-      config.separationRadius
-    );
+    // 拓扑模式不按半径筛选，格子只是搜索的粒度：给个下限，
+    // 免得视野半径被调得很小时要扩很多圈才凑够 k 个。
+    const radius =
+      config.perception === 'topological'
+        ? Math.max(TOPOLOGICAL_CELL_SIZE, config.separationRadius)
+        : Math.max(8, config.perceptionRadius, config.separationRadius);
     if (!this.gridDirty && this.cellSize === radius) return;
     this.buildGrid(radius);
     this.gridDirty = false;

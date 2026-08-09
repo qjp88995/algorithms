@@ -131,7 +131,7 @@ export function useBoidsSimulation(): {
         pointer: {
           ...live.config.pointer,
           active: live.interaction !== 'off' && pointer.inside,
-          mode: live.interaction === 'attract' ? 'attract' : 'repel',
+          mode: live.interaction === 'off' ? 'repel' : live.interaction,
           x: pointer.x,
           y: pointer.y,
         },

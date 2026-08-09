@@ -7,11 +7,13 @@ import {
   ToggleControl,
 } from '@/components/controls';
 
-import { presets } from '../constants';
+import { shapePresets, speciesPresets } from '../constants';
 import type {
   BoidsConfig,
+  BoidsPreset,
   DemoStats,
   EdgeMode,
+  PerceptionMode,
   PointerInteraction,
 } from '../types';
 
@@ -47,28 +49,54 @@ export function BoidsControls({
   onInteractionChange,
   stats,
 }: BoidsControlsProps) {
-  const activePreset = presets.find(item => item.id === presetId);
+  const topological = config.perception === 'topological';
+  const activeIsSpecies = speciesPresets.some(item => item.id === presetId);
+  const activePreset = [...speciesPresets, ...shapePresets].find(
+    item => item.id === presetId
+  );
 
   return (
     <>
-      <ControlGroup title="预设">
-        <div className="grid grid-cols-2 gap-1.5">
-          {presets.map(preset => (
-            <ActionButton
-              key={preset.id}
-              variant={preset.id === presetId ? 'primary' : 'ghost'}
-              onClick={() => onPresetSelect(preset.id)}
-              className="text-xs"
-            >
-              {preset.label}
-            </ActionButton>
-          ))}
-        </div>
-        {activePreset ? (
+      <ControlGroup title="物种">
+        <PresetRow
+          presets={speciesPresets}
+          activeId={presetId}
+          onSelect={onPresetSelect}
+        />
+        <p className="text-xs leading-relaxed text-faint">
+          {activeIsSpecies && activePreset
+            ? activePreset.description
+            : '鸟和鱼在算法上没有区别，差的是感知方式和运动约束。'}
+        </p>
+      </ControlGroup>
+
+      <ControlGroup title="形态">
+        <PresetRow
+          presets={shapePresets}
+          activeId={presetId}
+          onSelect={onPresetSelect}
+        />
+        {!activeIsSpecies && activePreset ? (
           <p className="text-xs leading-relaxed text-faint">
             {activePreset.description}
           </p>
         ) : null}
+      </ControlGroup>
+
+      <ControlGroup title="感知方式">
+        <SegmentedControl<PerceptionMode>
+          value={config.perception}
+          options={[
+            { value: 'metric', label: '度量' },
+            { value: 'topological', label: '拓扑' },
+          ]}
+          onChange={value => onConfigChange({ perception: value })}
+        />
+        <p className="text-xs leading-relaxed text-faint">
+          {topological
+            ? '固定跟最近的 k 个同伴互动，不论多远。把群拉稀疏也不会解体 —— 真实椋鸟群用的就是这种。'
+            : '只看视野半径内的同伴。一旦群体变稀疏，邻居数骤减，容易失联解体。'}
+        </p>
       </ControlGroup>
 
       <ControlGroup title="三条规则的权重">
@@ -98,15 +126,27 @@ export function BoidsControls({
         />
       </ControlGroup>
 
-      <ControlGroup title="感知">
-        <SliderControl
-          label="视野半径"
-          value={config.perceptionRadius}
-          min={10}
-          max={160}
-          unit=" px"
-          onChange={value => onConfigChange({ perceptionRadius: value })}
-        />
+      <ControlGroup title="感知范围">
+        {topological ? (
+          <SliderControl
+            label="邻居个数 k"
+            value={config.neighborCount}
+            min={1}
+            max={16}
+            unit=" 个"
+            hint="椋鸟的实测值是 6–7 个"
+            onChange={value => onConfigChange({ neighborCount: value })}
+          />
+        ) : (
+          <SliderControl
+            label="视野半径"
+            value={config.perceptionRadius}
+            min={10}
+            max={160}
+            unit=" px"
+            onChange={value => onConfigChange({ perceptionRadius: value })}
+          />
+        )}
         <SliderControl
           label="分离半径"
           value={config.separationRadius}
@@ -197,9 +237,16 @@ export function BoidsControls({
             { value: 'off', label: '关闭' },
             { value: 'attract', label: '吸引' },
             { value: 'repel', label: '驱散' },
+            { value: 'predator', label: '捕食者' },
           ]}
           onChange={onInteractionChange}
         />
+        {interaction === 'predator' ? (
+          <p className="text-xs leading-relaxed text-faint">
+            近距离爆散、同时聚合力加倍。慢慢划过群体看喷泉效应，
+            停在群中间看饵球 —— 两者都不是写死的动作。
+          </p>
+        ) : null}
         <SliderControl
           label="作用半径"
           value={config.pointer.radius}
@@ -256,5 +303,31 @@ export function BoidsControls({
         />
       </ControlGroup>
     </>
+  );
+}
+
+function PresetRow({
+  presets,
+  activeId,
+  onSelect,
+}: {
+  presets: BoidsPreset[];
+  activeId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {presets.map(preset => (
+        <ActionButton
+          key={preset.id}
+          variant={preset.id === activeId ? 'primary' : 'ghost'}
+          onClick={() => onSelect(preset.id)}
+          className="text-xs"
+          title={preset.description}
+        >
+          {preset.label}
+        </ActionButton>
+      ))}
+    </div>
   );
 }
