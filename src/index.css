@@ -20,6 +20,7 @@
   --color-faint: oklch(0.52 0.015 265);
   --color-accent: oklch(0.76 0.15 195);
   --color-accent-ink: oklch(0.22 0.04 195);
+  --color-danger: oklch(0.68 0.17 25);
 }
 
 html,

@@ -1,4 +1,4 @@
-import { Bird, type LucideIcon } from 'lucide-react';
+import { Bird, type LucideIcon, Waypoints } from 'lucide-react';
 
 /**
  * 算法注册表 —— 驱动图标导航、⌘K 命令面板和首页卡片。
@@ -15,7 +15,7 @@ import { Bird, type LucideIcon } from 'lucide-react';
 
 export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
-export type AlgorithmPath = '/boids';
+export type AlgorithmPath = '/boids' | '/pathfinding';
 
 export interface AlgorithmMeta {
   id: string;
@@ -43,6 +43,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '每只鸟只看邻居，只遵守分离、对齐、聚合三条局部规则，整体却涌现出鸟群般的集体运动。',
     tags: ['涌现行为', '局部规则', '空间网格'],
+  },
+  {
+    id: 'pathfinding',
+    path: '/pathfinding',
+    name: '寻路算法',
+    enName: 'A* / Dijkstra / BFS / Greedy',
+    category: '搜索',
+    icon: Waypoints,
+    summary:
+      '四个算法其实是同一套最佳优先搜索，只是优先队列的排序键不同 —— 换一个键，扩张形状和最优性保证就全变了。',
+    tags: ['启发式', '优先队列', '四路对比'],
   },
 ];
 
