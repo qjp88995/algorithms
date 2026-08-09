@@ -28,6 +28,7 @@ export function SliderControl({
   step = 1,
   unit,
   hint,
+  format,
   onChange,
 }: {
   label: string;
@@ -37,6 +38,8 @@ export function SliderControl({
   step?: number;
   unit?: string;
   hint?: string;
+  /** 数值另有读法时用它，比如「一天里的第几分钟」要显示成钟点 */
+  format?: (value: number) => string;
   onChange: (value: number) => void;
 }) {
   return (
@@ -44,7 +47,11 @@ export function SliderControl({
       <span className="flex items-baseline justify-between gap-2">
         <span className="text-sm text-muted">{label}</span>
         <span className="font-mono text-xs text-ink tabular-nums">
-          {Number.isInteger(step) ? value : value.toFixed(2)}
+          {format
+            ? format(value)
+            : Number.isInteger(step)
+              ? value
+              : value.toFixed(2)}
           {unit ? <span className="text-faint">{unit}</span> : null}
         </span>
       </span>

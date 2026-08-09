@@ -2,6 +2,7 @@ import {
   Bird,
   Blocks,
   Footprints,
+  Gauge,
   type LucideIcon,
   Network,
   Waypoints,
@@ -23,7 +24,12 @@ import {
 export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
 export type AlgorithmPath =
-  '/boids' | '/pathfinding' | '/maze-gen' | '/maze-runner' | '/shortest-path';
+  | '/boids'
+  | '/pathfinding'
+  | '/maze-gen'
+  | '/maze-runner'
+  | '/shortest-path'
+  | '/fastest-path';
 
 export interface AlgorithmMeta {
   id: string;
@@ -73,6 +79,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '离开网格，回到一般加权图：边可以有方向、正反不同价、甚至为负。Dijkstra 那句「这个点定稿了」到底凭什么成立，负权一出现就见分晓。',
     tags: ['松弛', '负权与负环', '全源最短路'],
+  },
+  {
+    id: 'fastest-path',
+    path: '/fastest-path',
+    name: '最快路径',
+    enName: 'Time-Dependent Shortest Path',
+    category: '图论',
+    icon: Gauge,
+    summary:
+      '同一条路，早高峰和深夜不是一个价。代价随出发时刻变化之后，最短的那条路往往不是最快的那条，Dijkstra 也得先满足 FIFO 才还算数。',
+    tags: ['时间依赖', 'FIFO 假设', '出发时刻'],
   },
   {
     id: 'maze-gen',
