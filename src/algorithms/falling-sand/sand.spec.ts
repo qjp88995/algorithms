@@ -183,6 +183,38 @@ describe('密度分层', () => {
     expect(bottom).toBeGreaterThan(30);
   });
 
+  /**
+   * 液面最上头总有一层填不满整格的水。相邻两级只差一格时，
+   * 「这边 6 格那边 5 格」和「这边 5 格那边 6 格」在能量上完全等价 ——
+   * 没有任何局部规则推得动它们，只能靠同高度的随机游走摊匀。
+   * 少了那一步，水面会永久卡成一级级一格高的台阶。
+   */
+  it('一边深一边浅，最后会摊成同一个高度', () => {
+    const world = withFloor(60, 20);
+    const floor = 19;
+    for (let y = floor - 8; y < floor; y++) {
+      for (let x = 1; x < 30; x++) world.set(x, y, WATER);
+    }
+    for (let y = floor - 2; y < floor; y++) {
+      for (let x = 30; x < 59; x++) world.set(x, y, WATER);
+    }
+
+    run(world, 3000);
+
+    // 每一列的水深最多差一格 —— 那一格是离散网格的量化误差，抹不掉
+    let low = Number.POSITIVE_INFINITY;
+    let high = 0;
+    for (let x = 1; x < 59; x++) {
+      let depth = 0;
+      for (let y = 0; y < world.rows; y++) {
+        if (world.get(x, y) === WATER) depth++;
+      }
+      low = Math.min(low, depth);
+      high = Math.max(high, depth);
+    }
+    expect(high - low).toBeLessThanOrEqual(1);
+  });
+
   it('气体往上跑', () => {
     const world = withFloor(8, 24);
     world.set(4, 20, STEAM);
@@ -442,11 +474,16 @@ describe('脏块', () => {
    */
   it('开着脏块跳过达到的静止，关掉之后也依然静止', () => {
     const world = withFloor(120, 60);
-    for (let y = 10; y < 59; y++) {
-      for (let x = 1; x < 14; x++) world.set(x, y, WATER);
+    // 中间一道墙，左边堆沙、右边一池齐平的水 —— 两样都会真正停下来。
+    // （水面不齐平时会永远微微游走，那是液面本来的样子，见下一条）
+    for (let y = 0; y < 59; y++) world.set(60, y, STONE);
+    for (let y = 20; y < 59; y++) {
+      for (let x = 1; x < 40; x++) world.set(x, y, SAND);
     }
+    // 水要一路填到画布边上：留一列空的，水就会往那儿淌，
+    // 水面永远齐不了平，也就永远静不下来
     for (let y = 30; y < 59; y++) {
-      for (let x = 60; x < 90; x++) world.set(x, y, SAND);
+      for (let x = 61; x < 120; x++) world.set(x, y, WATER);
     }
     run(world, 1500);
     expect(world.stats().activeChunks).toBe(0);
