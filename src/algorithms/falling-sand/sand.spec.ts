@@ -229,6 +229,51 @@ describe('反应', () => {
   });
 });
 
+describe('笔刷', () => {
+  it('拿火刷石墙不会把墙吃掉 —— 石头不在反应表里，也不该被笔刷抹掉', () => {
+    const world = withFloor(24, 24);
+    for (let y = 8; y < 16; y++) {
+      for (let x = 8; x < 16; x++) world.set(x, y, STONE);
+    }
+    const before = count(world, STONE);
+
+    world.paint(12, 12, 5, FIRE);
+    expect(count(world, STONE)).toBe(before);
+    // 火只落在墙外那一圈空格里
+    expect(count(world, FIRE)).toBeGreaterThan(0);
+  });
+
+  it('流体只落在空格里，不会凭空吃掉沙堆', () => {
+    const world = withFloor(24, 24);
+    for (let y = 14; y < 22; y++) {
+      for (let x = 8; x < 16; x++) world.set(x, y, SAND);
+    }
+    const before = count(world, SAND);
+
+    world.paint(12, 18, 6, WATER);
+    expect(count(world, SAND)).toBe(before);
+  });
+
+  it('不动的固体可以直接盖上去 —— 要在水里隔一道挡板', () => {
+    const world = withFloor(24, 24);
+    for (let y = 10; y < 22; y++) {
+      for (let x = 2; x < 22; x++) world.set(x, y, WATER);
+    }
+
+    world.paint(12, 16, 3, STONE);
+    expect(count(world, STONE)).toBeGreaterThan(world.cols); // 地板之外多出了挡板
+  });
+
+  it('橡皮擦一切', () => {
+    const world = withFloor(24, 24);
+    for (let y = 8; y < 16; y++) {
+      for (let x = 8; x < 16; x++) world.set(x, y, STONE);
+    }
+    world.paint(12, 12, 4, EMPTY);
+    expect(world.get(12, 12)).toBe(EMPTY);
+  });
+});
+
 describe('脏块', () => {
   it('全静止之后活跃块归零，扫过的像素也归零', () => {
     const world = withFloor(64, 64);

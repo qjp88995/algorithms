@@ -101,6 +101,11 @@ export function SandControls({
           })}
         </div>
         <p className="text-xs leading-relaxed text-faint">{material.blurb}</p>
+        <p className="text-xs leading-relaxed text-faint">
+          会流动的东西只落在<span className="text-muted">空格</span>
+          里，盖不掉已有的材质 —— 想烧木头就把火放在它旁边，让规则自己去点。
+          石头和木头可以直接盖上去，橡皮擦一切。
+        </p>
         <SliderControl
           label="笔刷半径"
           value={config.brushSize}

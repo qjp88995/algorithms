@@ -138,13 +138,30 @@ export class SandWorld {
     this.write(this.index(x, y), x, y, id);
   }
 
-  /** 圆形笔刷。半径 0 就是一格 */
+  /**
+   * 圆形笔刷。半径 0 就是一格。
+   *
+   * 覆盖规则不是「圆内一律盖掉」，分三档：
+   *
+   * - 橡皮擦一切；
+   * - 石头、木头这类不动的固体可以直接盖上去 —— 在水里隔一道挡板要靠它；
+   * - 会流动的东西（粉末 / 液体 / 气体）只落在空格里。
+   *
+   * 第三条是被一个具体的误会逼出来的：拿火在石墙上刷，整片墙会变成火，
+   * 看着就像「石头被点着了」—— 可石头根本不在反应表里，是笔刷把它吃了。
+   * 改成只落空格之后，想烧木头就得把火放在它旁边，让规则自己去点。
+   */
   paint(cx: number, cy: number, radius: number, id: number) {
     const r2 = radius * radius;
+    const overwrite = id === EMPTY || KIND[id] === KIND_STATIC;
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         if (dx * dx + dy * dy > r2) continue;
-        this.set(cx + dx, cy + dy, id);
+        const x = cx + dx;
+        const y = cy + dy;
+        if (!this.inside(x, y)) continue;
+        if (!overwrite && this.mat[this.index(x, y)] !== EMPTY) continue;
+        this.set(x, y, id);
       }
     }
   }
