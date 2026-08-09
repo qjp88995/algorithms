@@ -1,4 +1,5 @@
 import {
+  ArrowUpNarrowWide,
   Bird,
   Blocks,
   Footprints,
@@ -25,6 +26,7 @@ export type AlgorithmCategory = '群体智能' | '排序' | '图论' | '搜索';
 
 export type AlgorithmPath =
   | '/boids'
+  | '/sorting'
   | '/pathfinding'
   | '/maze-gen'
   | '/maze-runner'
@@ -57,6 +59,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '每只鸟只看邻居，只遵守分离、对齐、聚合三条局部规则，整体却涌现出鸟群般的集体运动。',
     tags: ['涌现行为', '局部规则', '空间网格'],
+  },
+  {
+    id: 'sorting',
+    path: '/sorting',
+    name: '排序算法',
+    enName: 'Sorting Algorithms',
+    category: '排序',
+    icon: ArrowUpNarrowWide,
+    summary:
+      '六种排序的结果一模一样，差别全在代价 —— 比较了多少次、搬了多少次。换一种输入分布，谁快谁慢还会当场对调。',
+    tags: ['比较与写入', '最坏情形', '分布敏感'],
   },
   {
     id: 'pathfinding',
