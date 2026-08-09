@@ -2,6 +2,7 @@ import {
   ArrowUpNarrowWide,
   Bird,
   Blocks,
+  CornerUpRight,
   Footprints,
   Gauge,
   type LucideIcon,
@@ -33,7 +34,8 @@ export type AlgorithmPath =
   | '/maze-runner'
   | '/shortest-path'
   | '/fastest-path'
-  | '/pareto-path';
+  | '/pareto-path'
+  | '/turn-cost';
 
 export interface AlgorithmMeta {
   id: string;
@@ -116,6 +118,17 @@ export const algorithms: AlgorithmMeta[] = [
     summary:
       '时间和过路费没有换算率，「最短」这个词当场失效。答案变成一组互不支配的路 —— 而给两个目标配权重求和这种偷懒做法，会漏掉其中一部分。',
     tags: ['帕累托前沿', '支配剪枝', '标签设定'],
+  },
+  {
+    id: 'turn-cost',
+    path: '/turn-cost',
+    name: '转弯代价',
+    enName: 'Turn Costs / State Expansion',
+    category: '搜索',
+    icon: CornerUpRight,
+    summary:
+      '转弯要花时间，于是同一条边两个价钱 —— 取决于你是从哪边进来的。dist[格子] 装不下这件事，只好把朝向也塞进状态：节点数当场翻四倍。',
+    tags: ['状态扩展', '代价依赖路径', '四倍搜索空间'],
   },
   {
     id: 'maze-gen',
