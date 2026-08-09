@@ -78,11 +78,16 @@ export class SandWorld {
   tint: Uint8Array;
   life: Uint8Array;
   /**
-   * 每格记下「最后处理它的那一帧的奇偶」。等于本帧的奇偶就说明它这一帧
-   * 已经动过了，不再处理 —— 否则一粒沙会被自己落到的新位置再捞起来一次。
-   * 存奇偶而不是帧号，是为了不必每帧清空这块内存。
+   * 每格记下**最后处理它的帧号**。等于本帧就说明它这一帧已经动过了，
+   * 不再处理 —— 否则一粒沙会被自己落到的新位置再捞起来一次。
+   *
+   * 这里原本存的是帧的奇偶（省内存，也不必每帧清空），那是个会静默锁死
+   * 整片流体的错误：一个块睡着期间奇偶一直在翻转，等它被叫醒时，格子里
+   * 存的旧奇偶有一半概率恰好等于当前奇偶，于是整块被当成「本帧已处理」
+   * 跳过；这一帧没有任何变动，块立刻又睡死，再也醒不过来。
+   * 症状是挖开一池静水，凹陷永远不会被填平。帧号不会有这种巧合。
    */
-  private clock: Uint8Array;
+  private clock: Uint32Array;
 
   chunkCols: number;
   chunkRows: number;
@@ -92,7 +97,6 @@ export class SandWorld {
   private pending: Uint8Array;
 
   frame = 0;
-  private parity = 0;
   private rand: () => number;
 
   /** 非空像素数。增删时顺手维护，比每帧数一遍便宜 */
@@ -110,7 +114,7 @@ export class SandWorld {
     this.mat = new Uint8Array(size);
     this.tint = new Uint8Array(size);
     this.life = new Uint8Array(size);
-    this.clock = new Uint8Array(size);
+    this.clock = new Uint32Array(size);
 
     this.chunkCols = Math.ceil(cols / CHUNK);
     this.chunkRows = Math.ceil(rows / CHUNK);
@@ -190,7 +194,7 @@ export class SandWorld {
     this.mat = new Uint8Array(size);
     this.tint = new Uint8Array(size);
     this.life = new Uint8Array(size);
-    this.clock = new Uint8Array(size);
+    this.clock = new Uint32Array(size);
     this.chunkCols = Math.ceil(cols / CHUNK);
     this.chunkRows = Math.ceil(rows / CHUNK);
     const chunks = this.chunkCols * this.chunkRows;
@@ -229,7 +233,6 @@ export class SandWorld {
 
   step(options: SandOptions) {
     this.frame++;
-    this.parity ^= 1;
     this.scanned = 0;
     this.moved = 0;
 
@@ -299,8 +302,8 @@ export class SandWorld {
     const i = y * this.cols + x;
     const id = this.mat[i];
     if (id === EMPTY) return;
-    if (this.clock[i] === this.parity) return;
-    this.clock[i] = this.parity;
+    if (this.clock[i] === this.frame) return;
+    this.clock[i] = this.frame;
 
     // 点火源就算一格都不动也得醒着，否则它旁边的木头永远等不到被点着
     if (RESTLESS[id]) this.touch(x, y);
@@ -439,7 +442,7 @@ export class SandWorld {
     const j = ty * this.cols + tx;
     if (!canEnter(id, this.mat[j], ty - y)) return false;
 
-    const { mat, tint, life, clock, parity } = this;
+    const { mat, tint, life, clock, frame } = this;
     const m = mat[i];
     mat[i] = mat[j];
     mat[j] = m;
@@ -449,8 +452,8 @@ export class SandWorld {
     const l = life[i];
     life[i] = life[j];
     life[j] = l;
-    clock[i] = parity;
-    clock[j] = parity;
+    clock[i] = frame;
+    clock[j] = frame;
 
     this.touch(x, y);
     this.touch(tx, ty);
@@ -472,7 +475,7 @@ export class SandWorld {
     const span = LIFE_MAX[id] - LIFE_MIN[id];
     this.life[i] =
       LIFE_MAX[id] > 0 ? LIFE_MIN[id] + ((this.rand() * (span + 1)) | 0) : 0;
-    this.clock[i] = this.parity;
+    this.clock[i] = this.frame;
     this.touch(x, y);
   }
 

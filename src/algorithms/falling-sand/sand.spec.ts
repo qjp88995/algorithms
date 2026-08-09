@@ -298,6 +298,40 @@ describe('脏块', () => {
     world.set(15, 40, SAND);
     world.step(options());
     expect(world.stats().activeChunks).toBeGreaterThan(0);
+    // 光是「块醒着」不算数，得真的动起来
+    expect(world.stats().moved).toBeGreaterThan(0);
+  });
+
+  /**
+   * 睡了奇数帧和偶数帧都要能醒。
+   *
+   * 这两个参数不是凑数：`clock` 曾经存的是帧的**奇偶**，于是一个块睡够
+   * 偶数帧之后被叫醒时，格子里的旧值恰好等于当前奇偶，整块被当成
+   * 「本帧已处理」跳过 —— 没有变动，块立刻又睡死。挖开的水坑会永远空着。
+   */
+  it.each([[120], [121]])('静置 %i 帧的水，挖开之后照样会流', frames => {
+    const world = withFloor(80, 48);
+    for (let y = 20; y < 47; y++) {
+      for (let x = 0; x < 80; x++) world.set(x, y, WATER);
+    }
+    run(world, frames);
+    expect(world.stats().activeChunks).toBe(0); // 确认真的睡透了
+
+    const before = count(world, WATER);
+    for (let y = 20; y < 40; y++) {
+      for (let x = 64; x < 80; x++) world.set(x, y, EMPTY);
+    }
+    const dug = count(world, WATER);
+
+    world.step(options());
+    // 紧挨着坑的水第一帧就该塌进去
+    expect(world.stats().moved).toBeGreaterThan(0);
+
+    run(world, 200);
+    expect(count(world, WATER)).toBe(dug); // 一格没多没少
+    expect(dug).toBeLessThan(before);
+    // 凹陷一路传到最左端：那里的水面也跟着降了
+    expect(topOf(world, WATER, 2)).toBeGreaterThan(20);
   });
 
   it('沙子跨块下落时不会卡在块边界上', () => {
